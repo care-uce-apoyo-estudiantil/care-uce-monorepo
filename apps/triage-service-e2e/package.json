@@ -1,0 +1,27 @@
+{
+  "name": "@org/triage-service-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "name": "triage-service-e2e",
+    "implicitDependencies": [
+      "triage-service"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{projectRoot}/test-output/jest/coverage"
+        ],
+        "options": {
+          "jestConfig": "apps/triage-service-e2e/jest.config.cts",
+          "passWithNoTests": true
+        },
+        "dependsOn": [
+          "triage-service:build",
+          "triage-service:serve"
+        ]
+      }
+    }
+  }
+}
