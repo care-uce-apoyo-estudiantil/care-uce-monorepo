@@ -1,0 +1,8 @@
+# Global rule (Fallback): Any unspecified file requires review from the Professor, Scrum Master, or DevOps
+* @JuanGuevara90 @Jaquimba23 @DomoPili
+
+# Frontend domain: Requires approval from the Professor, UI/UX dev, or DevOps/Scrum Master
+/apps/frontend/** @JuanGuevara90 @Davinson13 @DomoPili @Jaquimba23
+
+# Backend domain: Requires approval from the Professor, Backend dev, or DevOps/Scrum Master
+/apps/backend/** @JuanGuevara90 @carlosrm12 @DomoPili @Jaquimba232
