@@ -1,0 +1,6 @@
+import React from 'react';
+import { RegisterScreen } from '../screens/Auth/RegisterScreen'; 
+
+export default function Register() {
+  return <RegisterScreen />;
+}

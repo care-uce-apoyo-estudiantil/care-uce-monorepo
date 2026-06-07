@@ -1,17 +1,12 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
-const projectRoot = __dirname;
-const workspaceRoot = path.resolve(projectRoot, '../..');
+const config = getDefaultConfig(__dirname);
 
-const config = getDefaultConfig(projectRoot);
-
-config.watchFolders = [workspaceRoot];
-
-// AQUÍ ESTÁ LA MAGIA: Ponemos workspaceRoot (la raíz) PRIMERO.
+// Esto obliga a Metro a buscar los paquetes SOLO en la carpeta local, 
+// evitando que se pierda en el monorepo.
 config.resolver.nodeModulesPaths = [
-  path.resolve(workspaceRoot, 'node_modules'), 
-  path.resolve(projectRoot, 'node_modules'),
+  path.resolve(__dirname, 'node_modules'),
 ];
 
 module.exports = config;

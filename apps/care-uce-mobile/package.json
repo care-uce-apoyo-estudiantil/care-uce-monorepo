@@ -2,6 +2,7 @@
   "name": "@org/care-uce-mobile",
   "version": "0.0.1",
   "private": true,
+  "main": "expo-router/entry",
   "scripts": {
     "eas-build-post-install": "cd ../../ && node tools/scripts/eas-build-post-install.mjs . apps/care-uce-mobile"
   },
