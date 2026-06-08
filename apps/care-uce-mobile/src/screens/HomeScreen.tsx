@@ -1,86 +1,144 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
-import { ShieldAlert, Calendar, FolderHeart, Settings } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import { Menu, MessageCircle, Phone } from 'lucide-react-native';
+import { EmergencyButton } from '../components/atoms/EmergencyButton';
+import { SupportCard } from '../components/molecules/SupportCard';
+import { Sidebar } from '../components/organisms/Sidebar';
 
-// Importing Molecules
-import { ActionCard } from '../components/molecules/ActionCard';
+export function HomeScreen() {
+  // Estado para controlar la visibilidad del Sidebar
+  const [isSidebarVisible, setSidebarVisible] = useState(false);
 
-/**
- * HomeScreen Component
- * The main dashboard displayed after successful authentication.
- * Uses Atomic components to render service modules.
- */
-export const HomeScreen = () => {
+  const handleEmergency = () => {
+    console.log('¡Emergencia activada!');
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        
-        {/* Header Section */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Hola, Davinson 👋</Text>
-            <Text style={styles.subtitle}>¿En qué podemos ayudarte hoy?</Text>
-          </View>
+    <SafeAreaView style={styles.container}>
+      {/* Header Superior */}
+      <View style={styles.header}>
+        {/* Al presionar el menú, cambiamos el estado a true */}
+        <TouchableOpacity style={styles.menuIcon} onPress={() => setSidebarVisible(true)}>
+          <Menu color="#FFFFFF" size={28} />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerSubtitle}>CAreUCE</Text>
+          <Text style={styles.headerTitle}>Inicio</Text>
+        </View>
+        <View style={styles.headerAvatar} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.textSection}>
+          <Text style={styles.mainHeading}>¿Necesitas ayuda?</Text>
+          <Text style={styles.subHeading}>Estamos aquí para apoyarte en todo momento.</Text>
         </View>
 
-        {/* Emergency Banner (Organism Level) */}
-        <View style={styles.emergencyBanner}>
-          <ShieldAlert color="#FFFFFF" size={28} />
-          <View style={styles.emergencyTextContainer}>
-            <Text style={styles.emergencyTitle}>¿Necesitas ayuda inmediata?</Text>
-            <Text style={styles.emergencySubtitle}>Toca aquí para ir al Chat de Crisis</Text>
-          </View>
+        <View style={styles.emergencySection}>
+          <EmergencyButton onPress={handleEmergency} />
+          <Text style={styles.emergencyHelper}>Presiona en caso de crisis</Text>
         </View>
 
-        {/* Services Grid (Organism Level) */}
-        <Text style={styles.sectionTitle}>Servicios Estudiantiles</Text>
-        
-        <View style={styles.gridContainer}>
-          <ActionCard 
-            title="Agendar Cita" 
-            Icon={Calendar} 
-            isUnderConstruction={true}
-            onPress={() => console.log('Appointment module tapped')} 
+        <View style={styles.cardsSection}>
+          <SupportCard 
+            title="Chat de Apoyo"
+            subtitle="Habla con un consejero ahora"
+            Icon={MessageCircle}
+            iconColor="#28A745"
+            iconBgColor="#E8F5E9"
+            badgeText="EN LÍNEA"
+            onPress={() => console.log('Abrir Chat')}
           />
-          <ActionCard 
-            title="Mis Casos" 
-            Icon={FolderHeart} 
-            isUnderConstruction={true}
-            onPress={() => console.log('Cases module tapped')} 
-          />
-          <ActionCard 
-            title="Chat de Emergencia" 
-            Icon={ShieldAlert} 
-            isUnderConstruction={false} // This one could be active!
-            onPress={() => console.log('Chat module tapped')} 
-          />
-          <ActionCard 
-            title="Configuración" 
-            Icon={Settings} 
-            isUnderConstruction={true}
-            onPress={() => console.log('Settings module tapped')} 
+          <SupportCard 
+            title="Línea de Ayuda 24/7"
+            subtitle="1800-CARE-UCE"
+            Icon={Phone}
+            iconColor="#003366"
+            iconBgColor="#E6EEF5"
+            actionButton={{
+              text: 'Llamar',
+              onPress: () => console.log('Llamando...')
+            }}
           />
         </View>
-
       </ScrollView>
+
+      {/* Aquí inyectamos el Organismo Sidebar */}
+      <Sidebar 
+        visible={isSidebarVisible} 
+        onClose={() => setSidebarVisible(false)} 
+      />
+      
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F8F9FA' },
-  scrollContainer: { padding: 24 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30, marginTop: 20 },
-  greeting: { fontSize: 24, fontFamily: 'Inter-Bold', color: '#003366' },
-  subtitle: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#666666', marginTop: 4 },
-  emergencyBanner: {
-    backgroundColor: '#CC3333', // CareUCE Emergency Red
-    borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 30,
-    shadowColor: '#CC3333', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
   },
-  emergencyTextContainer: { marginLeft: 16, flex: 1 },
-  emergencyTitle: { color: '#FFFFFF', fontFamily: 'Inter-Bold', fontSize: 16 },
-  emergencySubtitle: { color: '#FFFFFF', fontFamily: 'Inter-Regular', fontSize: 13, marginTop: 2, opacity: 0.9 },
-  sectionTitle: { fontSize: 18, fontFamily: 'Inter-SemiBold', color: '#333333', marginBottom: 16 },
-  gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  header: {
+    backgroundColor: '#003366',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20, 
+    paddingBottom: 24,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  menuIcon: {
+    marginRight: 16,
+  },
+  headerSubtitle: {
+    color: '#A0BADD',
+    fontSize: 12,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  headerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#99B3CC',
+    marginLeft: 'auto',
+  },
+  scrollContent: {
+    paddingTop: 32,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  textSection: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  mainHeading: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#003366',
+    marginBottom: 8,
+  },
+  subHeading: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  emergencySection: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  emergencyHelper: {
+    marginTop: 16,
+    color: '#CC3333',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  cardsSection: {
+    width: '100%',
+  }
 });
