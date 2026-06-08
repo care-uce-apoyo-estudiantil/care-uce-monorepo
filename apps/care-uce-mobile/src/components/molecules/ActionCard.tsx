@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { LucideIcon } from 'lucide-react-native';
+import { LucideIcon, ChevronRight } from 'lucide-react-native';
 
 /**
  * Props for the ActionCard molecule.
