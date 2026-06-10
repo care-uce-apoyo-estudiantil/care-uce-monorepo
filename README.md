@@ -6,6 +6,9 @@ The UCE Integrated Student Support System is a highly available, event-driven di
 
 ## Architecture & Tech Stack
 
+## Try the full Nx platform
+
+🚀 If you haven't connected to Nx Cloud yet, [complete your setup here](https://cloud.nx.app/setup/connect-workspace/guide). Get faster builds with remote caching, distributed task execution, and self-healing CI. [See how your workspace can benefit](#nx-cloud).
 This project is structured as a **Monorepo** managed by **Nx** to share interfaces and optimize CI/CD pipelines.
 
 - **Backend / Microservices:** TypeScript, NestJS (Database-per-service pattern)

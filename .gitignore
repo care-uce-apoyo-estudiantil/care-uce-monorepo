@@ -48,12 +48,19 @@ Thumbs.db
 .nx/polygraph
 .nx/self-healing
 
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# env
+.env
+
 # Expo
-node_modules/
 .expo/
 .yarn/
-dist/
-npm-debug.*
 *.jks
 *.p8
 *.p12
@@ -62,7 +69,6 @@ npm-debug.*
 *.orig.*
 web-build/
 cache/
-
 
 *storybook.log
 storybook-static

@@ -6,12 +6,23 @@ interface EmergencyButtonProps {
   onPress: () => void;
 }
 
-export const EmergencyButton: React.FC<EmergencyButtonProps> = ({ onPress }) => {
+export const EmergencyButton: React.FC<EmergencyButtonProps> = ({
+  onPress,
+}) => {
   return (
     <View style={styles.outerRing}>
       <View style={styles.middleRing}>
-        <TouchableOpacity style={styles.button} onPress={onPress} activeOpacity={0.8}>
-          <ShieldAlert color="#FFFFFF" size={48} strokeWidth={1.5} style={styles.icon} />
+        <TouchableOpacity
+          style={styles.button}
+          onPress={onPress}
+          activeOpacity={0.8}
+        >
+          <ShieldAlert
+            color="#FFFFFF"
+            size={48}
+            strokeWidth={1.5}
+            style={styles.icon}
+          />
           <Text style={styles.text}>EMERGENCIA</Text>
         </TouchableOpacity>
       </View>
