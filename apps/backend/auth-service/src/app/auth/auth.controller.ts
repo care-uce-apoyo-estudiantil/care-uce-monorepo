@@ -1,5 +1,15 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  Get,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -16,5 +26,15 @@ export class AuthController {
   async login(@Body() body: any) {
     // Enviamos las credenciales al servicio
     return this.authService.login(body.email, body.password);
+  }
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  getProfile(@Request() req: any) {
+    // Si el usuario no envía un Token válido en los Headers, NestJS devolverá un 401 Unauthorized automáticamente.
+    // Si es válido, req.user tendrá los datos desencriptados.
+    return {
+      message: '¡Acceso concedido a ruta protegida!',
+      user: req.user,
+    };
   }
 }
