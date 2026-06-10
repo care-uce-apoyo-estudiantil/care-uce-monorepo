@@ -23,8 +23,8 @@ export const ActionCard: React.FC<ActionCardProps> = ({
   onPress,
 }) => {
   return (
-    <TouchableOpacity 
-      style={styles.cardContainer} 
+    <TouchableOpacity
+      style={styles.cardContainer}
       onPress={onPress}
       activeOpacity={0.8}
     >
@@ -32,7 +32,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
         <Icon color="#003366" size={32} />
       </View>
       <Text style={styles.cardTitle}>{title}</Text>
-      
+
       {/* Renders the construction badge if the module is not ready */}
       {isUnderConstruction && (
         <View style={styles.badgeContainer}>

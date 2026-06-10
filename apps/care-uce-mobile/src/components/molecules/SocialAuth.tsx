@@ -13,7 +13,11 @@ export const SocialAuth = () => (
 );
 
 const styles = StyleSheet.create({
-  container: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
+  container: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
   ssoButton: {
     flex: 1,
     borderWidth: 1,
@@ -23,7 +27,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 5,
-    backgroundColor: '#FFFFFF'
+    backgroundColor: '#FFFFFF',
   },
-  text: { color: '#333', fontFamily: 'Inter', fontSize: 14, fontWeight: '600' }
+  text: { color: '#333', fontFamily: 'Inter', fontSize: 14, fontWeight: '600' },
 });

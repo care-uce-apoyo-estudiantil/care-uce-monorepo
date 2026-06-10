@@ -1,6 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
-import { Home, Calendar, FileText, Bell, Settings, LogOut, X } from 'lucide-react-native';
+import {
+  Home,
+  Calendar,
+  FileText,
+  Bell,
+  Settings,
+  LogOut,
+  X,
+} from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
 interface SidebarProps {
@@ -28,16 +36,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
       <View style={styles.overlay}>
         {/* Contenedor principal del Sidebar (El panel blanco/azul) */}
         <View style={styles.sidebarContainer}>
-          
           {/* Header Azul */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <X color="#FFFFFF" size={24} />
             </TouchableOpacity>
-            
+
             <View style={styles.profileSection}>
               <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarInitials}>MJ</Text> 
+                <Text style={styles.avatarInitials}>MJ</Text>
               </View>
               <View>
                 <Text style={styles.userName}>María José</Text>
@@ -50,14 +57,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
           <View style={styles.menuContainer}>
             <MenuItem icon={Home} label="Inicio / Crisis" onPress={onClose} />
             <MenuItem icon={Calendar} label="Mis Citas" onPress={() => {}} />
-            <MenuItem icon={FileText} label="Historial Médico" onPress={() => {}} />
+            <MenuItem
+              icon={FileText}
+              label="Historial Médico"
+              onPress={() => {}}
+            />
             <MenuItem icon={Bell} label="Notificaciones" onPress={() => {}} />
-            <MenuItem icon={Settings} label="Configuración" onPress={() => {}} />
+            <MenuItem
+              icon={Settings}
+              label="Configuración"
+              onPress={() => {}}
+            />
           </View>
 
           {/* Botón de Cerrar Sesión */}
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
               <LogOut color="#CC3333" size={20} style={styles.logoutIcon} />
               <Text style={styles.logoutText}>Cerrar Sesión</Text>
             </TouchableOpacity>
@@ -65,7 +83,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
         </View>
 
         {/* Área oscura a la derecha: Al tocarla se cierra el menú */}
-        <TouchableOpacity style={styles.outsideClick} onPress={onClose} activeOpacity={1} />
+        <TouchableOpacity
+          style={styles.outsideClick}
+          onPress={onClose}
+          activeOpacity={1}
+        />
       </View>
     </Modal>
   );
