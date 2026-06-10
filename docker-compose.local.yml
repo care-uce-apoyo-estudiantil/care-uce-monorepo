@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  postgres-auth:
+    image: postgres:15-alpine
+    container_name: careuce-postgres-auth
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
+      POSTGRES_DB: ${DB_NAME:-auth_db}
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_auth_data:
