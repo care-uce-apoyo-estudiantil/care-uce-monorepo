@@ -24,15 +24,15 @@ export const SupportCard: React.FC<SupportCardProps> = ({
   onPress,
 }) => {
   return (
-    <TouchableOpacity 
-      style={styles.card} 
-      onPress={onPress} 
+    <TouchableOpacity
+      style={styles.card}
+      onPress={onPress}
       activeOpacity={onPress ? 0.7 : 1}
     >
       <View style={[styles.iconContainer, { backgroundColor: iconBgColor }]}>
         <Icon color={iconColor} size={24} />
       </View>
-      
+
       <View style={styles.textContainer}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>{title}</Text>
@@ -46,7 +46,10 @@ export const SupportCard: React.FC<SupportCardProps> = ({
       </View>
 
       {actionButton ? (
-        <TouchableOpacity style={styles.actionBtn} onPress={actionButton.onPress}>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={actionButton.onPress}
+        >
           <Text style={styles.actionBtnText}>{actionButton.text}</Text>
         </TouchableOpacity>
       ) : (

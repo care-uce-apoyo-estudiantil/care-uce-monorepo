@@ -19,25 +19,18 @@ jobs:
           filter: tree:0
           fetch-depth: 0
 
-      # This enables task distribution via Nx Cloud
-      - run: npx nx start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="e2e-ci"
-
-      # Cache node_modules
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      # Solución al error de dependencias de Davinson
       - run: npm ci --legacy-peer-deps
 
-      # Prepend any command with "nx record --" to record its logs to Nx Cloud
-      - run: npx nx record -- npx nx format:check  --base="remotes/origin/main"
-      
-      # Ejecución de todos los tests y builds (incluye Jest)
+      # Comando limpio de Nx Cloud
+      - run: npx nx format:check --base="remotes/origin/main"
+
       - run: npx nx run-many -t lint test build typecheck e2e-ci
-      
-      # Configuración de tu tarea de QA: Guardar reportes de Jest
+
       - name: Upload Coverage Reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -45,7 +38,3 @@ jobs:
           name: coverage-reports
           path: coverage/
           retention-days: 7
-
-      # Nx Cloud recommends fixes for failures
-      - run: npx nx fix-ci
-        if: always()

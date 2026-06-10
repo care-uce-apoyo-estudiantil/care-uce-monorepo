@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  SafeAreaView,
+  TouchableOpacity,
+} from 'react-native';
 import { Menu, MessageCircle, Phone } from 'lucide-react-native';
 import { EmergencyButton } from '../components/atoms/EmergencyButton';
 import { SupportCard } from '../components/molecules/SupportCard';
@@ -18,7 +25,10 @@ export function HomeScreen() {
       {/* Header Superior */}
       <View style={styles.header}>
         {/* Al presionar el menú, cambiamos el estado a true */}
-        <TouchableOpacity style={styles.menuIcon} onPress={() => setSidebarVisible(true)}>
+        <TouchableOpacity
+          style={styles.menuIcon}
+          onPress={() => setSidebarVisible(true)}
+        >
           <Menu color="#FFFFFF" size={28} />
         </TouchableOpacity>
         <View>
@@ -31,7 +41,9 @@ export function HomeScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.textSection}>
           <Text style={styles.mainHeading}>¿Necesitas ayuda?</Text>
-          <Text style={styles.subHeading}>Estamos aquí para apoyarte en todo momento.</Text>
+          <Text style={styles.subHeading}>
+            Estamos aquí para apoyarte en todo momento.
+          </Text>
         </View>
 
         <View style={styles.emergencySection}>
@@ -40,7 +52,7 @@ export function HomeScreen() {
         </View>
 
         <View style={styles.cardsSection}>
-          <SupportCard 
+          <SupportCard
             title="Chat de Apoyo"
             subtitle="Habla con un consejero ahora"
             Icon={MessageCircle}
@@ -49,7 +61,7 @@ export function HomeScreen() {
             badgeText="EN LÍNEA"
             onPress={() => console.log('Abrir Chat')}
           />
-          <SupportCard 
+          <SupportCard
             title="Línea de Ayuda 24/7"
             subtitle="1800-CARE-UCE"
             Icon={Phone}
@@ -57,18 +69,17 @@ export function HomeScreen() {
             iconBgColor="#E6EEF5"
             actionButton={{
               text: 'Llamar',
-              onPress: () => console.log('Llamando...')
+              onPress: () => console.log('Llamando...'),
             }}
           />
         </View>
       </ScrollView>
 
       {/* Aquí inyectamos el Organismo Sidebar */}
-      <Sidebar 
-        visible={isSidebarVisible} 
-        onClose={() => setSidebarVisible(false)} 
+      <Sidebar
+        visible={isSidebarVisible}
+        onClose={() => setSidebarVisible(false)}
       />
-      
     </SafeAreaView>
   );
 }
@@ -83,7 +94,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20, 
+    paddingTop: 20,
     paddingBottom: 24,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -140,5 +151,5 @@ const styles = StyleSheet.create({
   },
   cardsSection: {
     width: '100%',
-  }
+  },
 });

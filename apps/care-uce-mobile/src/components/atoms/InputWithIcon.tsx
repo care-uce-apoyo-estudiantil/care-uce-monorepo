@@ -10,12 +10,18 @@ interface InputProps {
   onRightIconPress?: () => void;
 }
 
-export const InputWithIcon = ({ icon: Icon, placeholder, secureTextEntry, rightIcon: RightIcon, onRightIconPress }: InputProps) => (
+export const InputWithIcon = ({
+  icon: Icon,
+  placeholder,
+  secureTextEntry,
+  rightIcon: RightIcon,
+  onRightIconPress,
+}: InputProps) => (
   <View style={styles.container}>
     <Icon color="#666" size={20} style={styles.icon} />
-    <TextInput 
-      style={styles.input} 
-      placeholder={placeholder} 
+    <TextInput
+      style={styles.input}
+      placeholder={placeholder}
       placeholderTextColor="#999"
       secureTextEntry={secureTextEntry}
     />
@@ -37,7 +43,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 16,
     height: 50,
-    backgroundColor: '#FFFFFF'
+    backgroundColor: '#FFFFFF',
   },
   icon: { marginRight: 10 },
   input: { flex: 1, fontFamily: 'Inter', fontSize: 16, color: '#333' },
