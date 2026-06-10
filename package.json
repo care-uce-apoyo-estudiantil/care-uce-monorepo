@@ -16,6 +16,7 @@
     "@swc/core": "1.15.8",
     "@swc/helpers": "0.5.18",
     "@types/bcrypt": "^6.0.0",
+    "@types/jest": "^30.0.0",
     "@types/node": "20.19.9",
     "@types/passport-jwt": "^4.0.1",
     "nx": "22.7.2",
