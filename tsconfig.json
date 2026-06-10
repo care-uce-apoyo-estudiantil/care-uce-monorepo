@@ -8,6 +8,9 @@
     },
     {
       "path": "./apps/backend/auth-service"
+    },
+    {
+      "path": "./apps/care-uce-mobile"
     }
   ]
 }

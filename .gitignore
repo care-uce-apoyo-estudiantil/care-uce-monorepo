@@ -57,3 +57,18 @@ Thumbs.db
 
 # env
 .env
+
+# Expo
+.expo/
+.yarn/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+cache/
+
+*storybook.log
+storybook-static
