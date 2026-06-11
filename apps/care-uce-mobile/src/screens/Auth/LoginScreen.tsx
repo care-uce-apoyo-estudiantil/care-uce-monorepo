@@ -37,9 +37,9 @@ export const LoginScreen = () => {
   const handleLogin = async () => {
     clearError();
 
-    // Validación básica
+    // Validación básica actualizada a Cédula
     if (!email.trim()) {
-      Alert.alert('Error', 'Por favor ingresa tu email o matrícula');
+      Alert.alert('Error', 'Por favor ingresa tu email o cédula');
       return;
     }
 
@@ -50,13 +50,16 @@ export const LoginScreen = () => {
 
     try {
       await login(email.trim(), password);
-      // Si el login es exitoso, el router lo maneja automáticamente
-      router.replace('/home');
+      // 👇 LÍNEA NUEVA: Pop-up de bienvenida
+      Alert.alert(
+        '¡Bienvenido!',
+        'Has iniciado sesión exitosamente en CareUCE.',
+      );
+      router.replace('/(tabs)/home');
     } catch (err: any) {
       Alert.alert('Error de autenticación', error || 'Credenciales inválidas');
     }
   };
-
   /**
    * Navega a la pantalla de registro
    */
@@ -86,7 +89,7 @@ export const LoginScreen = () => {
 
         <InputWithIcon
           icon={User}
-          placeholder="Email o Matrícula"
+          placeholder="Email o Cédula"
           value={email}
           onChangeText={setEmail}
           editable={!isLoading}
