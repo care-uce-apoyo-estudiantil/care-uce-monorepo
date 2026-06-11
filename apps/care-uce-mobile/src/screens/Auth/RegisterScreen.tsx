@@ -26,7 +26,7 @@ export const RegisterScreen = () => {
 
   // Form state
   const [fullName, setFullName] = useState('');
-  const [enrollment, setEnrollment] = useState('');
+  const [cedula, setCedula] = useState(''); // Cambiado de enrollment a cedula
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -51,8 +51,17 @@ export const RegisterScreen = () => {
       return false;
     }
 
-    if (!enrollment.trim()) {
-      Alert.alert('Error', 'Por favor ingresa tu número de matrícula');
+    // Validación de la cédula: que no esté vacía, sea solo números y tenga 10 dígitos
+    const isNumeric = /^\d+$/.test(cedula.trim());
+    if (!cedula.trim()) {
+      Alert.alert('Error', 'Por favor ingresa tu número de cédula');
+      return false;
+    }
+    if (cedula.trim().length !== 10 || !isNumeric) {
+      Alert.alert(
+        'Error',
+        'La cédula debe tener exactamente 10 dígitos numéricos',
+      );
       return false;
     }
 
@@ -98,8 +107,10 @@ export const RegisterScreen = () => {
     }
 
     try {
+      // ⚠️ NOTA IMPORTANTE: Si vas a enviar el Nombre y Cédula al backend,
+      // deberás actualizar register() en tu useAuth.ts para recibirlos.
       await register(email.trim(), password);
-      // Si el registro es exitoso, redirige al home
+
       Alert.alert('¡Éxito!', '¡Bienvenido a CareUCE!');
       router.replace('/home');
     } catch (err: any) {
@@ -117,7 +128,7 @@ export const RegisterScreen = () => {
     clearError();
     // Limpiar formulario
     setFullName('');
-    setEnrollment('');
+    setCedula('');
     setEmail('');
     setPassword('');
     setConfirmPassword('');
@@ -154,9 +165,9 @@ export const RegisterScreen = () => {
 
         <InputWithIcon
           icon={FileDigit}
-          placeholder="Número de Matrícula"
-          value={enrollment}
-          onChangeText={setEnrollment}
+          placeholder="Número de Cédula (10 dígitos)"
+          value={cedula}
+          onChangeText={setCedula}
           editable={!isLoading}
         />
 
