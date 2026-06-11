@@ -6,6 +6,8 @@ import {
   SafeAreaView,
   Platform,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { User, Lock, Eye, EyeOff, Shield } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -14,28 +16,54 @@ import { useRouter } from 'expo-router';
 import { InputWithIcon } from '../../components/atoms/InputWithIcon';
 import { PrimaryButton } from '../../components/atoms/PrimaryButton';
 import { SocialAuth } from '../../components/molecules/SocialAuth';
+import { useAuth } from '../../hooks/useAuth';
 
 /**
  * LoginScreen Component
- * Handles user authentication. Serves as the entry point for existing users.
+ * Handles user authentication with backend integration.
  */
 export const LoginScreen = () => {
   const router = useRouter();
+  const { login, isLoading, error, clearError } = useAuth();
+
+  // Form state
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isPasswordVisible, setPasswordVisible] = useState(false);
 
   /**
-   * Navigates to the Home Dashboard upon successful login
+   * Maneja el login con validación y error handling
    */
-  const handleLogin = () => {
-    // TODO: Implement actual authentication logic here
-    console.log('Authenticating user...');
-    router.replace('/home');
+  const handleLogin = async () => {
+    clearError();
+
+    // Validación básica
+    if (!email.trim()) {
+      Alert.alert('Error', 'Por favor ingresa tu email o matrícula');
+      return;
+    }
+
+    if (!password.trim()) {
+      Alert.alert('Error', 'Por favor ingresa tu contraseña');
+      return;
+    }
+
+    try {
+      await login(email.trim(), password);
+      // Si el login es exitoso, el router lo maneja automáticamente
+      router.replace('/home');
+    } catch (err: any) {
+      Alert.alert('Error de autenticación', error || 'Credenciales inválidas');
+    }
   };
 
   /**
-   * Navigates to the Registration Screen
+   * Navega a la pantalla de registro
    */
   const handleNavigateToRegister = () => {
+    clearError();
+    setEmail('');
+    setPassword('');
     router.push('/register');
   };
 
@@ -47,9 +75,22 @@ export const LoginScreen = () => {
         <Text style={styles.logoText}>CareUCE</Text>
       </View>
 
-      {/* Main Authentication Form (Organism Level conceptually) */}
+      {/* Main Authentication Form */}
       <View style={styles.floatingContainer}>
-        <InputWithIcon icon={User} placeholder="Cédula o Matrícula" />
+        {/* Error Message */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        <InputWithIcon
+          icon={User}
+          placeholder="Email o Matrícula"
+          value={email}
+          onChangeText={setEmail}
+          editable={!isLoading}
+        />
 
         <InputWithIcon
           icon={Lock}
@@ -57,15 +98,28 @@ export const LoginScreen = () => {
           secureTextEntry={!isPasswordVisible}
           rightIcon={isPasswordVisible ? EyeOff : Eye}
           onRightIconPress={() => setPasswordVisible(!isPasswordVisible)}
+          value={password}
+          onChangeText={setPassword}
+          editable={!isLoading}
         />
 
-        <TouchableOpacity style={styles.forgotPassword}>
+        <TouchableOpacity
+          style={styles.forgotPassword}
+          disabled={isLoading}
+        >
           <Text style={styles.linkText}>¿Olvidaste tu contraseña?</Text>
         </TouchableOpacity>
 
-        <PrimaryButton title="Ingresar" onPress={handleLogin} />
+        {/* Login Button con Loading State */}
+        {isLoading ? (
+          <View style={styles.loadingButton}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+          </View>
+        ) : (
+          <PrimaryButton title="Ingresar" onPress={handleLogin} />
+        )}
 
-        {/* Divider Molecule */}
+        {/* Divider */}
         <View style={styles.dividerContainer}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerText}>O CONTINUAR CON</Text>
@@ -77,7 +131,10 @@ export const LoginScreen = () => {
         {/* Footer Navigation */}
         <View style={styles.registerContainer}>
           <Text style={styles.regularText}>¿No tienes cuenta? </Text>
-          <TouchableOpacity onPress={handleNavigateToRegister}>
+          <TouchableOpacity
+            onPress={handleNavigateToRegister}
+            disabled={isLoading}
+          >
             <Text style={styles.linkTextBold}>Regístrate</Text>
           </TouchableOpacity>
         </View>
@@ -115,8 +172,31 @@ const styles = StyleSheet.create({
       android: { elevation: 3 },
     }),
   },
+  errorContainer: {
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#CC3333',
+  },
+  errorText: {
+    color: '#CC3333',
+    fontFamily: 'Inter',
+    fontSize: 14,
+    fontWeight: '500',
+  },
   forgotPassword: { alignSelf: 'flex-end', marginBottom: 24 },
   linkText: { color: '#003366', fontFamily: 'Inter', fontSize: 14 },
+  loadingButton: {
+    backgroundColor: '#003366',
+    borderRadius: 8,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 24,
+  },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
