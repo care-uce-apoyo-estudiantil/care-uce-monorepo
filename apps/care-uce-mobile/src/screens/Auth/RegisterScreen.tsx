@@ -31,7 +31,8 @@ export const RegisterScreen = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isPasswordVisible, setPasswordVisible] = useState(false);
-  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
+    useState(false);
 
   /**
    * Valida el email institucional
@@ -63,7 +64,7 @@ export const RegisterScreen = () => {
     if (!isValidEmail(email)) {
       Alert.alert(
         'Email inválido',
-        'Por favor usa un email institucional (@uce.edu.ec)'
+        'Por favor usa un email institucional (@uce.edu.ec)',
       );
       return false;
     }
@@ -104,7 +105,7 @@ export const RegisterScreen = () => {
     } catch (err: any) {
       Alert.alert(
         'Error en el registro',
-        error || 'Algo salió mal. Intenta nuevamente.'
+        error || 'Algo salió mal. Intenta nuevamente.',
       );
     }
   };

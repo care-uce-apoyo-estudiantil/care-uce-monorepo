@@ -103,10 +103,7 @@ export const LoginScreen = () => {
           editable={!isLoading}
         />
 
-        <TouchableOpacity
-          style={styles.forgotPassword}
-          disabled={isLoading}
-        >
+        <TouchableOpacity style={styles.forgotPassword} disabled={isLoading}>
           <Text style={styles.linkText}>¿Olvidaste tu contraseña?</Text>
         </TouchableOpacity>
 

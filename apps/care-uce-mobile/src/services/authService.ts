@@ -40,7 +40,7 @@ class AuthService {
         }
         return config;
       },
-      (error) => Promise.reject(error)
+      (error) => Promise.reject(error),
     );
 
     // Interceptor para manejo de errores
@@ -52,7 +52,7 @@ class AuthService {
           await AsyncStorage.removeItem('auth_token');
         }
         return Promise.reject(error);
-      }
+      },
     );
   }
 
@@ -60,7 +60,7 @@ class AuthService {
   async register(
     email: string,
     password: string,
-    role: string = 'student'
+    role: string = 'student',
   ): Promise<AuthResponse> {
     try {
       const response = await this.api.post<AuthResponse>('/auth/register', {
