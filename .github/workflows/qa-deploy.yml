@@ -47,7 +47,7 @@ jobs:
           # Escribimos la llave respetando los saltos de línea exactos
           cat << 'KEYEOF' > ~/.ssh/aws_key.pem
           ${{ secrets.QA_SSH_PRIVATE_KEY }}
-          KEYEOF
+KEYEOF
           chmod 600 ~/.ssh/aws_key.pem
 
       - name: 📂 Copiar docker-compose a EC2 (Native SCP)
@@ -61,21 +61,25 @@ jobs:
           set -e 
 
           echo "🚀 Conectado exitosamente a la EC2 de AWS QA de forma nativa"
-
+          
+          # 0. Instalar Docker Compose V2 para soportar imágenes modernas
+          sudo apt-get update -y
+          sudo apt-get install -y docker-compose-v2
+          
           # 1. Inyectar el archivo .env de forma segura
           cat << 'ENVEOF' > /home/ubuntu/.env
           ${{ secrets.QA_ENV_FILE }}
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-          ENVEOF
-
+ENVEOF
+          
           # 2. Login en Docker Hub
           echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-          # 3. Levantar Infraestructura
+          
+          # 3. Levantar Infraestructura (⚠️ NOTA EL CAMBIO: sin guion entre docker y compose)
           cd /home/ubuntu
-          sudo docker-compose -f docker-compose.qa.yml pull
-          sudo docker-compose -f docker-compose.qa.yml up -d
-
+          sudo docker compose -f docker-compose.qa.yml pull
+          sudo docker compose -f docker-compose.qa.yml up -d
+          
           # 4. Limpieza de imágenes
           sudo docker image prune -af
-          EOF
+EOF
