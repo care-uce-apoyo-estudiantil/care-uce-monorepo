@@ -1,3 +1,13 @@
+# Configuración del Backend Remoto (HCP Terraform)
+terraform {
+  cloud {
+    organization = "CareUCE"
+    workspaces {
+      name = "careuce-qa"
+    }
+  }
+}
+
 # 1. Llamamos a nuestro módulo de VPC
 module "vpc" {
   source      = "../../modules/vpc"
@@ -50,15 +60,15 @@ resource "aws_security_group" "qa_sg" {
 # 3. La instancia conectada a la subred y al grupo de seguridad
 resource "aws_instance" "qa_server" {
   ami                  = "ami-0c7217cdde317cfec" # Ubuntu 22.04 LTS us-east-1
-  instance_type        = var.instance_type # <-- Consumiendo la variable t3.medium
+  instance_type        = var.instance_type # t3.medium
   iam_instance_profile = "LabInstanceProfile"
   
   # Conexión a la red
-  subnet_id                   = module.vpc.public_subnet_id
+  subnet_id                   = module.vpc.public_subnet_ids[0]
   vpc_security_group_ids      = [aws_security_group.qa_sg.id]
-  associate_public_ip_address = true # Para poder acceder desde internet
+  associate_public_ip_address = true
 
-  # Script de inicio: Instalar Docker automáticamente al encender
+  # Script de inicio: Instalar Docker E Inyectar Llave
   user_data = <<-EOF
               #!/bin/bash
               apt-get update -y
@@ -66,6 +76,10 @@ resource "aws_instance" "qa_server" {
               systemctl enable docker
               systemctl start docker
               usermod -aG docker ubuntu
+              
+              # ⚠️ PEGA AQUÍ EL CONTENIDO EXACTO DE TU ARCHIVO careuce_key.pub
+              # Debe verse similar a: echo "ssh-ed25519 AAAAC3Nz..." >> /home/ubuntu/.ssh/authorized_keys
+              echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3NOegJ4uoghKjQ2UblMW+JB2SUbrJZRXUUYfqQxgjY deploy-qa" >> /home/ubuntu/.ssh/authorized_keys
               EOF
 
   tags = {
@@ -74,8 +88,19 @@ resource "aws_instance" "qa_server" {
   }
 }
 
-# Output para saber qué IP nos asignó AWS
+# 4. DATA: Buscamos la IP Elástica que reservaste manualmente
+data "aws_eip" "mi_ip_fija" {
+  public_ip = "52.45.134.152"
+}
+
+# 5. ASOCIACIÓN: Amarra la IP Elástica a la instancia EC2
+resource "aws_eip_association" "eip_assoc" {
+  instance_id   = aws_instance.qa_server.id
+  allocation_id = data.aws_eip.mi_ip_fija.id
+}
+
+# 6. OUTPUT: Mostramos la IP Elástica Final
 output "qa_server_public_ip" {
-  description = "La IP publica para acceder a la instancia de QA"
-  value       = aws_instance.qa_server.public_ip
+  description = "La IP publica estática persistente"
+  value       = data.aws_eip.mi_ip_fija.public_ip
 }

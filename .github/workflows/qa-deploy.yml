@@ -1,0 +1,85 @@
+name: QA Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - QA
+
+jobs:
+  ci-and-build:
+    name: 🏗️ Build & Push Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🐳 Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: 🚀 Build and Push Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-auth:qa -f apps/backend/auth-service/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/careuce-auth:qa
+
+  deploy:
+    name: 🚀 Deploy to AWS QA
+    needs: ci-and-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository for Compose file
+        uses: actions/checkout@v4
+
+      - name: 🔐 Configurar llave SSH Nativa
+        run: |
+          mkdir -p ~/.ssh
+          # Escribimos la llave respetando los saltos de línea exactos
+          cat << 'KEYEOF' > ~/.ssh/aws_key.pem
+          ${{ secrets.QA_SSH_PRIVATE_KEY }}
+          KEYEOF
+          chmod 600 ~/.ssh/aws_key.pem
+
+      - name: 📂 Copiar docker-compose a EC2 (Native SCP)
+        # Usamos StrictHostKeyChecking=no para evitar bloqueos del host
+        run: |
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/aws_key.pem docker-compose.qa.yml ubuntu@${{ secrets.QA_EC2_IP }}:/home/ubuntu/
+
+      - name: 🌐 Ejecutar comandos remotos (Native SSH)
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/aws_key.pem ubuntu@${{ secrets.QA_EC2_IP }} << 'EOF'
+          set -e 
+
+          echo "🚀 Conectado exitosamente a la EC2 de AWS QA de forma nativa"
+
+          # 0. Instalar Docker Compose V2 para soportar imágenes modernas
+          sudo apt-get update -y
+          sudo apt-get install -y docker-compose-v2
+
+          # 1. Inyectar el archivo .env de forma segura
+          cat << 'ENVEOF' > /home/ubuntu/.env
+          ${{ secrets.QA_ENV_FILE }}
+          DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+          ENVEOF
+
+          # 2. Login en Docker Hub
+          echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+          # 3. LIMPIEZA PREVIA: Borrar contenedores apagados e imágenes viejas para liberar los 8GB
+          sudo docker system prune -af --volumes
+
+          # 4. Levantar Infraestructura
+          cd /home/ubuntu
+          sudo docker compose -f docker-compose.qa.yml pull
+          sudo docker compose -f docker-compose.qa.yml up -d
+          EOF

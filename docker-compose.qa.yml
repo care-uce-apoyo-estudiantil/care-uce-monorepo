@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # 1. Contenedor de Base de Datos para Auth Service
+  auth-db:
+    image: postgres:15-alpine
+    container_name: careuce-auth-db-qa
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    networks:
+      - careuce-qa-network
+    # No exponemos puertos al exterior, máxima seguridad.
+
+  # 2. Tu Microservicio de Autenticación
+  auth-service:
+    image: ${DOCKER_USERNAME}/careuce-auth:qa
+    container_name: careuce-auth-service-qa
+    restart: always
+    ports:
+      - '3000:3000' # Expuesto al mundo para que Front/Mobile puedan consumirlo
+    depends_on:
+      - auth-db
+    env_file:
+      - .env # Leerá el archivo que GitHub Actions creará dinámicamente
+    networks:
+      - careuce-qa-network
+
+networks:
+  careuce-qa-network:
+    driver: bridge

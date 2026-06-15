@@ -102,7 +102,7 @@ resource "aws_launch_template" "app" {
   user_data = base64encode(<<-EOF
               #!/bin/bash
               apt-get update -y
-              apt-get install -y docker.io docker-compose
+              apt-get install -y docker.io docker-compose-v2
               systemctl enable docker
               systemctl start docker
               usermod -aG docker ubuntu
