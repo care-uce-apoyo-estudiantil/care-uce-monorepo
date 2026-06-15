@@ -75,11 +75,11 @@ jobs:
           # 2. Login en Docker Hub
           echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-          # 3. Levantar Infraestructura (⚠️ NOTA EL CAMBIO: sin guion entre docker y compose)
+          # 3. LIMPIEZA PREVIA: Borrar contenedores apagados e imágenes viejas para liberar los 8GB
+          sudo docker system prune -af --volumes
+
+          # 4. Levantar Infraestructura
           cd /home/ubuntu
           sudo docker compose -f docker-compose.qa.yml pull
           sudo docker compose -f docker-compose.qa.yml up -d
-
-          # 4. Limpieza de imágenes
-          sudo docker image prune -af
           EOF
