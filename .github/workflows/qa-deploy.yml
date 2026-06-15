@@ -58,25 +58,24 @@ jobs:
       - name: 🌐 Ejecutar comandos remotos (Native SSH)
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/aws_key.pem ubuntu@${{ secrets.QA_EC2_IP }} << 'EOF'
-            # ⚠️ REGLA DE ORO: Detener todo si hay un error y reportarlo a GitHub
-            set -e 
+          set -e 
 
-            echo "🚀 Conectado exitosamente a la EC2 de AWS QA de forma nativa"
-            
-            # 1. Inyectar el archivo .env de forma segura
-            cat << 'ENVEOF' > /home/ubuntu/.env
-            ${{ secrets.QA_ENV_FILE }}
-            DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-            ENVEOF
-            
-            # 2. Login en Docker Hub
-            echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-            
-            # 3. Levantar Infraestructura
-            cd /home/ubuntu
-            sudo docker-compose -f docker-compose.qa.yml pull
-            sudo docker-compose -f docker-compose.qa.yml up -d
-            
-            # 4. Limpieza de imágenes
-            sudo docker image prune -af
+          echo "🚀 Conectado exitosamente a la EC2 de AWS QA de forma nativa"
+
+          # 1. Inyectar el archivo .env de forma segura
+          cat << 'ENVEOF' > /home/ubuntu/.env
+          ${{ secrets.QA_ENV_FILE }}
+          DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+          ENVEOF
+
+          # 2. Login en Docker Hub
+          echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+          # 3. Levantar Infraestructura
+          cd /home/ubuntu
+          sudo docker-compose -f docker-compose.qa.yml pull
+          sudo docker-compose -f docker-compose.qa.yml up -d
+
+          # 4. Limpieza de imágenes
+          sudo docker image prune -af
           EOF
