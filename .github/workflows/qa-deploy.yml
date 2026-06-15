@@ -44,23 +44,23 @@ jobs:
       - name: 🔐 Configurar llave SSH Nativa
         run: |
           mkdir -p ~/.ssh
-          # Guardamos el secreto en un archivo .pem temporal en el servidor de GitHub
-          echo "${{ secrets.QA_SSH_PRIVATE_KEY }}" > ~/.ssh/aws_key.pem
-          # Le damos los permisos estrictos (lo mismo que te pidió Windows localmente)
+          # Escribimos la llave respetando los saltos de línea exactos
+          cat << 'KEYEOF' > ~/.ssh/aws_key.pem
+          ${{ secrets.QA_SSH_PRIVATE_KEY }}
+          KEYEOF
           chmod 600 ~/.ssh/aws_key.pem
-          # Agregamos la IP de AWS a la lista de hosts conocidos para que no pregunte "yes/no"
-          ssh-keyscan -H ${{ secrets.QA_EC2_IP }} >> ~/.ssh/known_hosts
 
       - name: 📂 Copiar docker-compose a EC2 (Native SCP)
+        # Usamos StrictHostKeyChecking=no para evitar bloqueos del host
         run: |
-          scp -i ~/.ssh/aws_key.pem docker-compose.qa.yml ubuntu@${{ secrets.QA_EC2_IP }}:/home/ubuntu/
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/aws_key.pem docker-compose.qa.yml ubuntu@${{ secrets.QA_EC2_IP }}:/home/ubuntu/
 
       - name: 🌐 Ejecutar comandos remotos (Native SSH)
         run: |
-          ssh -i ~/.ssh/aws_key.pem ubuntu@${{ secrets.QA_EC2_IP }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/aws_key.pem ubuntu@${{ secrets.QA_EC2_IP }} << 'EOF'
             echo "🚀 Conectado exitosamente a la EC2 de AWS QA de forma nativa"
             
-            # 1. Inyectar el archivo .env de forma segura soportando saltos de línea
+            # 1. Inyectar el archivo .env de forma segura
             cat << 'ENVEOF' > /home/ubuntu/.env
             ${{ secrets.QA_ENV_FILE }}
             ENVEOF
@@ -73,6 +73,6 @@ jobs:
             sudo docker-compose -f docker-compose.qa.yml pull
             sudo docker-compose -f docker-compose.qa.yml up -d
             
-            # 4. Limpieza de imágenes sin uso
+            # 4. Limpieza de imágenes
             sudo docker image prune -af
           EOF
