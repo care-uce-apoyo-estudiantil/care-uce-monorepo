@@ -58,9 +58,12 @@ jobs:
       - name: 🌐 Ejecutar comandos remotos (Native SSH)
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/aws_key.pem ubuntu@${{ secrets.QA_EC2_IP }} << 'EOF'
+            # ⚠️ REGLA DE ORO: Detener todo si hay un error y reportarlo a GitHub
+            set -e 
+
             echo "🚀 Conectado exitosamente a la EC2 de AWS QA de forma nativa"
             
-            # 1. Inyectar el archivo .env de forma segura y asegurar el DOCKER_USERNAME
+            # 1. Inyectar el archivo .env de forma segura
             cat << 'ENVEOF' > /home/ubuntu/.env
             ${{ secrets.QA_ENV_FILE }}
             DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
@@ -74,6 +77,6 @@ jobs:
             sudo docker-compose -f docker-compose.qa.yml pull
             sudo docker-compose -f docker-compose.qa.yml up -d
             
-            # 4. Limpieza de imágenes para no saturar el disco de la EC2
+            # 4. Limpieza de imágenes
             sudo docker image prune -af
           EOF
