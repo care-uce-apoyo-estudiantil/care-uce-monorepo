@@ -72,3 +72,7 @@ cache/
 
 *storybook.log
 storybook-static
+
+# Ignorar llaves SSH locales
+careuce_key
+careuce_key.pub
