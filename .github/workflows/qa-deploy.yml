@@ -41,36 +41,38 @@ jobs:
       - name: 📥 Checkout repository for Compose file
         uses: actions/checkout@v4
 
-      # Copiamos el archivo docker-compose.qa.yml al servidor EC2
-      - name: 📂 Copy Docker Compose file to EC2
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.QA_EC2_IP }}
-          username: ubuntu
-          key: ${{ secrets.QA_SSH_PRIVATE_KEY }}
-          source: 'docker-compose.qa.yml'
-          target: '/home/ubuntu/'
+      - name: 🔐 Configurar llave SSH Nativa
+        run: |
+          mkdir -p ~/.ssh
+          # Guardamos el secreto en un archivo .pem temporal en el servidor de GitHub
+          echo "${{ secrets.QA_SSH_PRIVATE_KEY }}" > ~/.ssh/aws_key.pem
+          # Le damos los permisos estrictos (lo mismo que te pidió Windows localmente)
+          chmod 600 ~/.ssh/aws_key.pem
+          # Agregamos la IP de AWS a la lista de hosts conocidos para que no pregunte "yes/no"
+          ssh-keyscan -H ${{ secrets.QA_EC2_IP }} >> ~/.ssh/known_hosts
 
-      # Entramos por SSH, inyectamos el .env secreto y levantamos los contenedores
-      - name: 🌐 Execute Remote SSH Commands
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.QA_EC2_IP }}
-          username: ubuntu
-          key: ${{ secrets.QA_SSH_PRIVATE_KEY }}
-          script: |
-            echo "🚀 Conectado exitosamente a la EC2 de AWS QA"
+      - name: 📂 Copiar docker-compose a EC2 (Native SCP)
+        run: |
+          scp -i ~/.ssh/aws_key.pem docker-compose.qa.yml ubuntu@${{ secrets.QA_EC2_IP }}:/home/ubuntu/
 
-            # 1. Crear el archivo .env con los secretos de GitHub
-            echo "${{ secrets.QA_ENV_FILE }}" > /home/ubuntu/.env
-
-            # 2. Login en Docker en el servidor (para descargar la imagen)
+      - name: 🌐 Ejecutar comandos remotos (Native SSH)
+        run: |
+          ssh -i ~/.ssh/aws_key.pem ubuntu@${{ secrets.QA_EC2_IP }} << 'EOF'
+            echo "🚀 Conectado exitosamente a la EC2 de AWS QA de forma nativa"
+            
+            # 1. Inyectar el archivo .env de forma segura soportando saltos de línea
+            cat << 'ENVEOF' > /home/ubuntu/.env
+            ${{ secrets.QA_ENV_FILE }}
+            ENVEOF
+            
+            # 2. Login en Docker Hub
             echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-            # 3. Levantar la base de datos y el microservicio usando Docker Compose
+            
+            # 3. Levantar Infraestructura
             cd /home/ubuntu
             sudo docker-compose -f docker-compose.qa.yml pull
             sudo docker-compose -f docker-compose.qa.yml up -d
-
-            # 4. Limpiar imágenes viejas para no llenar el disco de AWS
+            
+            # 4. Limpieza de imágenes sin uso
             sudo docker image prune -af
+          EOF
