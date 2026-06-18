@@ -5,6 +5,11 @@ resource "aws_lb" "main" {
   security_groups    = [var.security_group_id]
   subnets            = var.public_subnet_ids
   tags = { Name = "CareUCE-ALB-${var.environment}", Environment = var.environment }
+
+  # prevenir que se elimine
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # Aquí es donde el ALB enviará el tráfico (a tus instancias EC2)

@@ -106,6 +106,17 @@ resource "aws_launch_template" "app" {
               systemctl enable docker
               systemctl start docker
               usermod -aG docker ubuntu
+
+              #  ARREGLO: Iniciar el contenedor inyectando las variables desde Terraform
+              # (Asegúrate de cambiar 'TU_USUARIO_DOCKER' por tu usuario real de DockerHub)
+              docker run -d -p 80:3000 --name auth-service --restart always \
+                -e NODE_ENV="production" \
+                -e DB_HOST="${aws_db_instance.auth_db.address}" \
+                -e DB_PORT="5432" \
+                -e DB_USER="${aws_db_instance.auth_db.username}" \
+                -e DB_PASSWORD="${aws_db_instance.auth_db.password}" \
+                -e JWT_SECRET="CareUceSuperSecretProd2024!" \
+                cvrobayo/careuce-auth:prod
               EOF
   )
 }
@@ -170,4 +181,39 @@ resource "aws_autoscaling_policy" "requests_policy" {
 output "production_url" {
   description = "URL publica del Load Balancer de Produccion"
   value       = module.alb.alb_dns_name
+}
+
+
+# RDS for auth-service
+
+# Crear la Subnet Group para RDS (para que sepa en qué subredes privadas vivir)
+resource "aws_db_subnet_group" "db_subnet" {
+  name       = "careuce-db-subnet"
+  subnet_ids = module.vpc.private_subnet_ids
+}
+
+# Crear la Base de Datos PostgreSQL
+resource "aws_db_instance" "auth_db" {
+  identifier             = "careuce-auth-db-prod"
+  engine                 = "postgres"
+  engine_version         = "15.4"
+  instance_class         = "db.t3.micro" # Capa gratuita / bajo costo
+  allocated_storage      = 20
+  db_name                = "auth_db_prod"
+  username               = "postgres"
+  password               = "postgres" # En un entorno real esto va oculto
+  db_subnet_group_name   = aws_db_subnet_group.db_subnet.name
+  vpc_security_group_ids = [aws_security_group.app_sg.id]
+  skip_final_snapshot    = true
+
+  # Persistencia de la db
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+# Output para que Terraform te entregue la URL exacta al terminar
+output "rds_endpoint" {
+  description = "URL de conexión de la base de datos de Producción - auth-service"
+  value       = aws_db_instance.auth_db.endpoint
 }
