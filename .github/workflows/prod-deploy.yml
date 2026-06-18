@@ -3,7 +3,7 @@ name: PROD Deployment Pipeline
 on:
   push:
     branches:
-      - feat/prod
+      - main
 
 jobs:
   ci-and-build:
