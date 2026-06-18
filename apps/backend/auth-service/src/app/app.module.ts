@@ -32,7 +32,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
           entities: [User],
           autoLoadEntities: true,
           // Apaga synchronize en PROD automáticamente para evitar borrar datos
-          synchronize: !isProduction,
+          synchronize: true,
           // 🔥 EL ARREGLO: Activa SSL solo en AWS
           ssl: isProduction ? { rejectUnauthorized: false } : false,
         };
