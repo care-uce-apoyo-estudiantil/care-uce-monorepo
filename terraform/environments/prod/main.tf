@@ -63,6 +63,13 @@ resource "aws_security_group" "app_sg" {
     security_groups = [aws_security_group.bastion_sg.id]
   }
 
+  ingress {
+    from_port = 5432
+    to_port   = 5432
+    protocol  = "tcp"
+    self      = true # 'self' significa que permite tráfico desde este mismo Security Group
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -107,15 +114,17 @@ resource "aws_launch_template" "app" {
               systemctl start docker
               usermod -aG docker ubuntu
 
-              #  ARREGLO: Iniciar el contenedor inyectando las variables desde Terraform
-              # (Asegúrate de cambiar 'TU_USUARIO_DOCKER' por tu usuario real de DockerHub)
+              # 🔥 ARREGLO: Agregamos PORT y JWT_EXPIRATION
               docker run -d -p 80:3000 --name auth-service --restart always \
+                -e PORT="3000" \
                 -e NODE_ENV="production" \
                 -e DB_HOST="${aws_db_instance.auth_db.address}" \
                 -e DB_PORT="5432" \
                 -e DB_USER="${aws_db_instance.auth_db.username}" \
                 -e DB_PASSWORD="${aws_db_instance.auth_db.password}" \
+                -e DB_NAME="${aws_db_instance.auth_db.db_name}" \
                 -e JWT_SECRET="CareUceSuperSecretProd2024!" \
+                -e JWT_EXPIRATION="1h" \
                 cvrobayo/careuce-auth:prod
               EOF
   )
