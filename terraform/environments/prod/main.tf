@@ -196,7 +196,7 @@ resource "aws_db_subnet_group" "db_subnet" {
 resource "aws_db_instance" "auth_db" {
   identifier             = "careuce-auth-db-prod"
   engine                 = "postgres"
-  engine_version         = "15.4"
+  engine_version         = "15"
   instance_class         = "db.t3.micro" # Capa gratuita / bajo costo
   allocated_storage      = 20
   db_name                = "auth_db_prod"
