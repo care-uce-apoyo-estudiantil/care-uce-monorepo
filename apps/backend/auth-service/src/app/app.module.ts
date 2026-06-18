@@ -18,17 +18,25 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USER'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_NAME'),
-        entities: [User],
-        autoLoadEntities: true,
-        synchronize: true, // ¡OJO! Solo para desarrollo local/QA. En PROD usaremos migraciones.
-      }),
+      useFactory: (configService: ConfigService) => {
+        const isProduction =
+          configService.get<string>('NODE_ENV') === 'production';
+
+        return {
+          type: 'postgres',
+          host: configService.get<string>('DB_HOST'),
+          port: configService.get<number>('DB_PORT'),
+          username: configService.get<string>('DB_USER'),
+          password: configService.get<string>('DB_PASSWORD'),
+          database: configService.get<string>('DB_NAME'),
+          entities: [User],
+          autoLoadEntities: true,
+          // Apaga synchronize en PROD automáticamente para evitar borrar datos
+          synchronize: true,
+          // 🔥 EL ARREGLO: Activa SSL solo en AWS
+          ssl: isProduction ? { rejectUnauthorized: false } : false,
+        };
+      },
     }),
     // 3. ¡Registramos nuestro nuevo módulo de Autenticación aquí!
     AuthModule,
