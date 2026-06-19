@@ -1,68 +1,78 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { ShieldAlert } from 'lucide-react-native';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  View,
+  ViewStyle,
+} from 'react-native';
+import { PhoneCall } from 'lucide-react-native';
+// Importamos nuestro Theme
+import { Colors, Spacing, Typography } from '../../constants/Theme';
 
 interface EmergencyButtonProps {
   onPress: () => void;
+  title?: string;
+  subtitle?: string;
+  style?: ViewStyle;
 }
 
-export const EmergencyButton: React.FC<EmergencyButtonProps> = ({
+export const EmergencyButton = ({
   onPress,
-}) => {
+  title = 'AYUDA RÁPIDA',
+  subtitle = 'Soporte 24h',
+  style,
+}: EmergencyButtonProps) => {
   return (
-    <View style={styles.outerRing}>
-      <View style={styles.middleRing}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={onPress}
-          activeOpacity={0.8}
-        >
-          <ShieldAlert
-            color="#FFFFFF"
-            size={48}
-            strokeWidth={1.5}
-            style={styles.icon}
-          />
-          <Text style={styles.text}>EMERGENCIA</Text>
-        </TouchableOpacity>
-      </View>
+    <View style={[styles.container, style]}>
+      <TouchableOpacity
+        style={styles.panicButton}
+        onPress={onPress}
+        activeOpacity={0.8}
+      >
+        <PhoneCall color={Colors.crisisText} size={36} />
+      </TouchableOpacity>
+
+      {/* Texto debajo del botón circular */}
+      <Text style={styles.panicTitle}>{title}</Text>
+      {subtitle && <Text style={styles.panicSub}>{subtitle}</Text>}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  outerRing: {
-    backgroundColor: 'rgba(204, 51, 51, 0.1)',
-    borderRadius: 150,
-    padding: 20,
+  container: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: Spacing.xl,
+    paddingVertical: Spacing.sm,
   },
-  middleRing: {
-    backgroundColor: 'rgba(204, 51, 51, 0.2)',
-    borderRadius: 150,
-    padding: 20,
-  },
-  button: {
-    backgroundColor: '#CC3333',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    alignItems: 'center',
+  panicButton: {
+    backgroundColor: Colors.crisis, // Usamos el color del tema
+    width: 100, // Lo hacemos circular
+    height: 100,
+    borderRadius: 50,
     justifyContent: 'center',
-    shadowColor: '#CC3333',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
+    alignItems: 'center',
+    marginBottom: Spacing.sm, // Espacio para el texto de abajo
+
+    // Sombras intensas para destacar
+    shadowColor: Colors.crisis,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 10, // Sombra para Android
   },
-  icon: {
-    marginBottom: 8,
+  panicTitle: {
+    // Usamos la tipografía del tema
+    ...Typography.emergencyTitle,
+    color: Colors.crisis, // Cambiamos el color para que se lea fuera del botón
+    textAlign: 'center',
   },
-  text: {
-    color: '#FFFFFF',
-    fontFamily: 'Inter',
-    fontSize: 16,
-    fontWeight: 'bold',
+  panicSub: {
+    ...Typography.emergencySub,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 2,
   },
 });

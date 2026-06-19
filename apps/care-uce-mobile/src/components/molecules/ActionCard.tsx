@@ -1,85 +1,58 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { LucideIcon, ChevronRight } from 'lucide-react-native';
+import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+// Importamos nuestro Theme
+import { Colors, Spacing, Typography } from '../../constants/Theme';
 
-/**
- * Props for the ActionCard molecule.
- * @param title - The main text displayed on the card.
- * @param Icon - The Lucide component to render.
- * @param isUnderConstruction - Flag to display the construction badge.
- * @param onPress - Callback function when the card is pressed.
- */
 interface ActionCardProps {
   title: string;
-  Icon: LucideIcon;
-  isUnderConstruction?: boolean;
+  description: string;
+  icon: React.ReactNode;
+  iconBgColor: string;
   onPress: () => void;
 }
 
-export const ActionCard: React.FC<ActionCardProps> = ({
+export const ActionCard = ({
   title,
-  Icon,
-  isUnderConstruction = true,
+  description,
+  icon,
+  iconBgColor,
   onPress,
-}) => {
+}: ActionCardProps) => {
   return (
-    <TouchableOpacity
-      style={styles.cardContainer}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <View style={styles.iconContainer}>
-        <Icon color="#003366" size={32} />
+    <TouchableOpacity style={styles.card} onPress={onPress}>
+      <View style={[styles.iconContainer, { backgroundColor: iconBgColor }]}>
+        {icon}
       </View>
-      <Text style={styles.cardTitle}>{title}</Text>
-
-      {/* Renders the construction badge if the module is not ready */}
-      {isUnderConstruction && (
-        <View style={styles.badgeContainer}>
-          <Text style={styles.badgeText}>Under Construction</Text>
-        </View>
-      )}
+      {/* Usamos tipografía del tema */}
+      <Text style={Typography.cardTitle} numberOfLines={1}>
+        {title}
+      </Text>
+      <Text style={styles.cardDesc} numberOfLines={1}>
+        {description}
+      </Text>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  cardContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginBottom: 16,
-    width: '47%', // Allows two cards per row in a flex-wrap container
+  card: {
+    backgroundColor: Colors.surface, // Usamos colores del tema
+    width: '48%',
+    borderRadius: 14,
+    padding: Spacing.md, // Usamos espaciado del tema
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   iconContainer: {
-    backgroundColor: '#F0F4F8',
-    padding: 16,
-    borderRadius: 50,
-    marginBottom: 12,
+    width: 46,
+    height: 46,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
   },
-  cardTitle: {
-    fontFamily: 'Inter-SemiBold', // Ensure Inter font is loaded
-    fontSize: 14,
-    color: '#333333',
-    textAlign: 'center',
-  },
-  badgeContainer: {
-    marginTop: 10,
-    backgroundColor: '#FFF3CD',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-  },
-  badgeText: {
-    fontSize: 10,
-    color: '#856404',
-    fontFamily: 'Inter-Medium',
+  cardDesc: {
+    ...Typography.caption, // Heredamos estilo base
+    marginTop: Spacing.xs,
   },
 });

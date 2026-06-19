@@ -10,6 +10,7 @@ import {
   X,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../../hooks/useAuth'; // Hook de autenticación incorporado
 
 interface SidebarProps {
   visible: boolean;
@@ -18,10 +19,16 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
   const router = useRouter();
+  const { logout, user } = useAuth(); // Extraemos los datos del usuario y la función de logout
 
-  const handleLogout = () => {
-    onClose(); // Cierra el modal primero
-    router.replace('/'); // Te redirige al login
+  const handleLogout = async () => {
+    onClose(); // Cerramos el modal primero para evitar congelamientos visuales
+    try {
+      await logout(); // Limpia los tokens del AsyncStorage
+      router.replace('/'); // Te manda directo a la pantalla de Login
+    } catch (error) {
+      console.error('Error al cerrar sesión desde el sidebar:', error);
+    }
   };
 
   const MenuItem = ({ icon: Icon, label, onPress }: any) => (
@@ -34,9 +41,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
   return (
     <Modal visible={visible} transparent={true} animationType="fade">
       <View style={styles.overlay}>
-        {/* Contenedor principal del Sidebar (El panel blanco/azul) */}
         <View style={styles.sidebarContainer}>
-          {/* Header Azul */}
+          {/* Header Azul con datos dinámicos */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <X color="#FFFFFF" size={24} />
@@ -44,33 +50,47 @@ export const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
 
             <View style={styles.profileSection}>
               <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarInitials}>MJ</Text>
+                <Text style={styles.avatarInitials}>
+                  {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
+                </Text>
               </View>
-              <View>
-                <Text style={styles.userName}>María José</Text>
-                <Text style={styles.userEmail}>mj.doe@uce.edu.ec</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.userName}>Estudiante</Text>
+                <Text style={styles.userEmail} numberOfLines={1}>
+                  {user?.email || 'estudiante@uce.edu.ec'}
+                </Text>
               </View>
             </View>
           </View>
 
-          {/* Menú de Opciones */}
+          {/* Menú de Opciones enlazado al Router */}
           <View style={styles.menuContainer}>
-            <MenuItem icon={Home} label="Inicio / Crisis" onPress={onClose} />
-            <MenuItem icon={Calendar} label="Mis Citas" onPress={() => {}} />
+            <MenuItem
+              icon={Home}
+              label="Inicio / Crisis"
+              onPress={() => {
+                onClose();
+                router.push('/(tabs)/home/');
+              }}
+            />
+            <MenuItem
+              icon={Calendar}
+              label="Mis Citas"
+              onPress={() => {
+                onClose();
+                router.push('/(tabs)/appointments');
+              }}
+            />
             <MenuItem
               icon={FileText}
               label="Historial Médico"
-              onPress={() => {}}
+              onPress={onClose}
             />
-            <MenuItem icon={Bell} label="Notificaciones" onPress={() => {}} />
-            <MenuItem
-              icon={Settings}
-              label="Configuración"
-              onPress={() => {}}
-            />
+            <MenuItem icon={Bell} label="Notificaciones" onPress={onClose} />
+            <MenuItem icon={Settings} label="Configuración" onPress={onClose} />
           </View>
 
-          {/* Botón de Cerrar Sesión */}
+          {/* Botón de Cerrar Sesión Real */}
           <View style={styles.footer}>
             <TouchableOpacity
               style={styles.logoutButton}
@@ -82,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
           </View>
         </View>
 
-        {/* Área oscura a la derecha: Al tocarla se cierra el menú */}
+        {/* Cierre táctil al dar clic fuera del panel blanco */}
         <TouchableOpacity
           style={styles.outsideClick}
           onPress={onClose}
@@ -97,10 +117,10 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: 'rgba(15, 23, 42, 0.6)', // Fondo oscuro semitransparente
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
   },
   sidebarContainer: {
-    width: '80%', // Ocupa el 80% de la pantalla
+    width: '80%',
     backgroundColor: '#FFFFFF',
     height: '100%',
     shadowColor: '#000',
@@ -110,7 +130,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   outsideClick: {
-    flex: 1, // Ocupa el 20% restante para poder hacer clic y cerrar
+    flex: 1,
   },
   header: {
     backgroundColor: '#003366',
