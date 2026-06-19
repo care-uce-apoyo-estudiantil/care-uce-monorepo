@@ -145,9 +145,9 @@ resource "aws_autoscaling_group" "app_asg" {
   target_group_arns   = [module.alb.target_group_arn]
   
   # Límites estrictos para respetar las reglas de AWS Academy (32 vCPUs maximo)
-  desired_capacity    = 2 # Iniciamos con 2 máquinas (1 en cada zona de disponibilidad)
-  min_size            = 2 # Nunca debe haber menos de 2 máquinas (Alta Disponibilidad real)
-  max_size            = 4 # Si hay crisis, escalará hasta 4 (8 vCPUs en total, muy seguro)
+  desired_capacity    = 0 # Iniciamos con 2 máquinas (1 en cada zona de disponibilidad)
+  min_size            = 0 # Nunca debe haber menos de 2 máquinas (Alta Disponibilidad real)
+  max_size            = 0 # Si hay crisis, escalará hasta 4 (8 vCPUs en total, muy seguro)
 
   launch_template {
     id      = aws_launch_template.app.id
