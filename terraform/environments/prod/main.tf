@@ -1,3 +1,12 @@
+terraform {
+  cloud {
+    organization = "CareUCE"
+    workspaces {
+      name = "careuce-prod" 
+    }
+  }
+}
+
 # 1. Red Multi-AZ
 module "vpc" {
   source      = "../../modules/vpc"
