@@ -50,10 +50,10 @@ jobs:
           KEYEOF
           chmod 600 ~/.ssh/aws_key.pem
 
-      - name: 📂 Copiar docker-compose a EC2 (Native SCP)
-        # Usamos StrictHostKeyChecking=no para evitar bloqueos del host
+      - name: 📂 Copiar docker-compose y Nginx a EC2 (Native SCP)
+        # 🔥 ARREGLO: Agregamos '-r' (recursivo) y la carpeta 'nginx/' al comando
         run: |
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/aws_key.pem docker-compose.qa.yml ubuntu@${{ secrets.QA_EC2_IP }}:/home/ubuntu/
+          scp -r -o StrictHostKeyChecking=no -i ~/.ssh/aws_key.pem docker-compose.qa.yml nginx/ ubuntu@${{ secrets.QA_EC2_IP }}:/home/ubuntu/
 
       - name: 🌐 Ejecutar comandos remotos (Native SSH)
         run: |
