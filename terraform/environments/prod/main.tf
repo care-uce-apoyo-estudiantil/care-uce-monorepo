@@ -1,3 +1,12 @@
+terraform {
+  cloud {
+    organization = "CareUCE"
+    workspaces {
+      name = "careuce-prod"
+    }
+  }
+}
+
 # 1. Red Multi-AZ
 module "vpc" {
   source      = "../../modules/vpc"
@@ -114,8 +123,14 @@ resource "aws_launch_template" "app" {
               systemctl start docker
               usermod -aG docker ubuntu
 
-              # 🔥 ARREGLO: Agregamos PORT y JWT_EXPIRATION
-              docker run -d -p 80:3000 --name auth-service --restart always \
+              # 1. Crear una red privada de Docker para que los contenedores se comuniquen
+              docker network create careuce-prod-network
+
+              # 2. Iniciar el Auth Service en esa red, SIN exponer puertos (-p) hacia la máquina EC2
+              # Mantenemos toda tu inyección dinámica de variables de entorno de RDS intacta
+              docker run -d --name auth-service \
+                --network careuce-prod-network \
+                --restart always \
                 -e PORT="3000" \
                 -e NODE_ENV="production" \
                 -e DB_HOST="${aws_db_instance.auth_db.address}" \
@@ -126,6 +141,40 @@ resource "aws_launch_template" "app" {
                 -e JWT_SECRET="CareUceSuperSecretProd2024!" \
                 -e JWT_EXPIRATION="1h" \
                 cvrobayo/careuce-auth:prod
+
+              # 3. Crear el archivo de configuración para el API Gateway (Nginx)
+              mkdir -p /home/ubuntu/nginx
+              cat << 'NGINX_CONF' > /home/ubuntu/nginx/nginx.conf
+              events {
+                  worker_connections 1024;
+              }
+              http {
+                  server {
+                      listen 80;
+                      
+                      # Ruta de salud para el Balanceador de Carga
+                      location / {
+                          return 200 'CareUCE API Gateway is running in PROD!';
+                          add_header Content-Type text/plain;
+                      }
+                      
+                      # Enrutamiento hacia Auth-Service (usa el nombre del contenedor gracias a la red de Docker)
+                      location /api/auth/ {
+                          proxy_pass http://auth-service:3000/;
+                          proxy_set_header Host $host;
+                          proxy_set_header X-Real-IP $remote_addr;
+                          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                      }
+                  }
+              }
+              NGINX_CONF
+
+              # 4. Iniciar Nginx exponiendo el puerto 80 a la EC2 y conectándolo a la misma red
+              docker run -d -p 80:80 --name api-gateway \
+                --network careuce-prod-network \
+                --restart always \
+                -v /home/ubuntu/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+                nginx:alpine
               EOF
   )
 }
