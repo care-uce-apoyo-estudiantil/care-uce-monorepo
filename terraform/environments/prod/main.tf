@@ -123,11 +123,10 @@ resource "aws_launch_template" "app" {
               systemctl start docker
               usermod -aG docker ubuntu
 
-              # 1. Crear una red privada de Docker para que los contenedores se comuniquen
+              # 1. Crear una red privada de Docker
               docker network create careuce-prod-network
 
-              # 2. Iniciar el Auth Service en esa red, SIN exponer puertos (-p) hacia la máquina EC2
-              # Mantenemos toda tu inyección dinámica de variables de entorno de RDS intacta
+              # 2. Iniciar el Auth Service en esa red, SIN exponer puertos (-p)
               docker run -d --name auth-service \
                 --network careuce-prod-network \
                 --restart always \
@@ -142,7 +141,7 @@ resource "aws_launch_template" "app" {
                 -e JWT_EXPIRATION="1h" \
                 cvrobayo/careuce-auth:prod
 
-              # 3. Crear el archivo de configuración para el API Gateway (Nginx)
+              # 3. Crear el archivo de configuración para Nginx (SIN BARRAS FINALES)
               mkdir -p /home/ubuntu/nginx
               cat << 'NGINX_CONF' > /home/ubuntu/nginx/nginx.conf
               events {
@@ -152,15 +151,14 @@ resource "aws_launch_template" "app" {
                   server {
                       listen 80;
                       
-                      # Ruta de salud para el Balanceador de Carga
                       location / {
                           return 200 'CareUCE API Gateway is running in PROD!';
                           add_header Content-Type text/plain;
                       }
                       
-                      # Enrutamiento hacia Auth-Service (usa el nombre del contenedor gracias a la red de Docker)
-                      location /api/auth/ {
-                          proxy_pass http://auth-service:3000/;
+                      # 🔥 Corrección aplicada: Enrutamiento Transparente
+                      location /api/auth {
+                          proxy_pass http://auth-service:3000;
                           proxy_set_header Host $host;
                           proxy_set_header X-Real-IP $remote_addr;
                           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -169,7 +167,7 @@ resource "aws_launch_template" "app" {
               }
               NGINX_CONF
 
-              # 4. Iniciar Nginx exponiendo el puerto 80 a la EC2 y conectándolo a la misma red
+              # 4. Iniciar Nginx
               docker run -d -p 80:80 --name api-gateway \
                 --network careuce-prod-network \
                 --restart always \
