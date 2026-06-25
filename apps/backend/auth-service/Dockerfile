@@ -8,7 +8,7 @@ COPY . .
 RUN npx nx build auth-service --prod
 
 # Etapa 2: Producción
-FROM node:20-alpine
+FROM node:22-alpine
 WORKDIR /app
 COPY --from=builder /app/apps/backend/auth-service/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
