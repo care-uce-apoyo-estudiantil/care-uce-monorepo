@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { TriageModule } from './triage/triage.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AppService } from './app.service';
       }),
       inject: [ConfigService],
     }),
+    TriageModule,
   ],
   controllers: [AppController],
   providers: [AppService],
