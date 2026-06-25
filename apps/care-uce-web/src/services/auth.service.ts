@@ -1,8 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 🌍 GESTIÓN DE ENTORNOS (Descomenta el que vayas a usar)
-//const API_BASE_URL = 'http://192.168.1.4:3000/api'; // Local (Tu IP física)
+//const API_BASE_URL = 'http://localhost:3000/api'; // Local
 const API_BASE_URL = 'http://caruceqa.programacionwebuce.net/api'; // QA
 // const API_BASE_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
 
@@ -34,7 +33,7 @@ class AuthService {
     this.api.interceptors.request.use(
       async (config) => {
         try {
-          const token = await AsyncStorage.getItem('auth_token'); // 📱 Mobile usa AsyncStorage
+          const token = localStorage.getItem('auth_token'); // 🌐 Web usa localStorage
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
           }
@@ -46,14 +45,20 @@ class AuthService {
       (error) => Promise.reject(error),
     );
 
-    // Interceptor para manejo de errores
     this.api.interceptors.response.use(
       (response) => response,
       async (error) => {
+        // Obtenemos la ruta actual
+        const currentPath = window.location.pathname;
+
         if (error.response?.status === 401) {
-          // Token expirado, limpiar storage
-          await AsyncStorage.removeItem('auth_token');
-          await AsyncStorage.removeItem('user');
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user');
+
+          // SOLO redirigimos y recargamos si NO estamos ya en la pantalla de Auth
+          if (currentPath !== '/auth' && currentPath !== '/login') {
+            window.location.href = '/auth';
+          }
         }
         return Promise.reject(error);
       },
@@ -73,8 +78,8 @@ class AuthService {
         role,
       });
       if (response.data.access_token) {
-        await AsyncStorage.setItem('auth_token', response.data.access_token);
-        await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('auth_token', response.data.access_token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
       }
       return response.data;
     } catch (error: any) {
@@ -93,8 +98,8 @@ class AuthService {
         password,
       });
       if (response.data.access_token) {
-        await AsyncStorage.setItem('auth_token', response.data.access_token);
-        await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('auth_token', response.data.access_token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
       }
       return response.data;
     } catch (error: any) {
@@ -121,17 +126,17 @@ class AuthService {
   // Logout
   async logout(): Promise<void> {
     try {
-      await AsyncStorage.removeItem('auth_token');
-      await AsyncStorage.removeItem('user');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
     } catch (error) {
       console.error('Error al logout:', error);
     }
   }
 
-  // Obtener token guardado
+  // Obtener token guardado (Se mantiene async para igualar la firma con mobile)
   async getToken(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem('auth_token');
+      return localStorage.getItem('auth_token');
     } catch (error) {
       return null;
     }
@@ -140,7 +145,7 @@ class AuthService {
   // Obtener usuario guardado
   async getStoredUser(): Promise<User | null> {
     try {
-      const user = await AsyncStorage.getItem('user');
+      const user = localStorage.getItem('user');
       return user ? JSON.parse(user) : null;
     } catch (error) {
       return null;
