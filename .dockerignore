@@ -1,0 +1,10 @@
+node_modules
+.nx
+dist
+.cache
+.expo
+npm-debug.log
+apps/care-uce-mobile/.expo
+apps/care-uce-mobile/node_modules
+apps/care-uce-web/node_modules
+apps/backend/auth-service/node_modules
