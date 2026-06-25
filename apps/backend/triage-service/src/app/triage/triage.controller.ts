@@ -6,18 +6,24 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { TriageService } from './triage.service';
 import { CreateTriageDto } from './dto/create-triage.dto';
 import { UpdateTriageDto } from './dto/update-triage.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('triage')
 export class TriageController {
   constructor(private readonly triageService: TriageService) {}
 
   @Post()
-  create(@Body() createTriageDto: CreateTriageDto) {
-    return this.triageService.create(createTriageDto);
+  create(@Request() req: any, @Body() createTriageDto: CreateTriageDto) {
+    // 🔥 Extraemos el userId directamente del JWT validado
+    const studentId = req.user.userId;
+    return this.triageService.create(studentId, createTriageDto);
   }
 
   @Get()

@@ -12,25 +12,23 @@ export class TriageService {
     private readonly triageRepository: Repository<Triage>,
   ) {}
 
-  async create(createTriageDto: CreateTriageDto) {
+  async create(studentId: string, createTriageDto: CreateTriageDto) {
     let totalScore = 0;
     const answers = createTriageDto.answers;
 
-    // Suma simple de puntajes basada en las respuestas
     for (const key in answers) {
       if (typeof answers[key] === 'number') {
         totalScore += answers[key];
       }
     }
 
-    // Clasificación del riesgo
     let risk = RiskLevel.LOW;
     if (totalScore >= 20) risk = RiskLevel.CRITICAL;
     else if (totalScore >= 15) risk = RiskLevel.HIGH;
     else if (totalScore >= 10) risk = RiskLevel.MODERATE;
 
     const newTriage = this.triageRepository.create({
-      studentId: createTriageDto.studentId,
+      studentId: studentId, // 🔥 Lo usamos directamente aquí
       answers: answers,
       score: totalScore,
       riskLevel: risk,
