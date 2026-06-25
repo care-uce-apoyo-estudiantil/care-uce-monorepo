@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 🌍 GESTIÓN DE ENTORNOS (Descomenta el que vayas a usar)
 //const API_BASE_URL = 'http://192.168.1.4:3000/api'; // Local (Tu IP física)
- const API_BASE_URL = 'http://caruceqa.programacionwebuce.net/api'; // QA
+const API_BASE_URL = 'http://caruceqa.programacionwebuce.net/api'; // QA
 // const API_BASE_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
 
 export interface AuthResponse {
@@ -61,9 +61,17 @@ class AuthService {
   }
 
   // Registro de nuevo usuario
-  async register(email: string, password: string, role: string = 'student'): Promise<AuthResponse> {
+  async register(
+    email: string,
+    password: string,
+    role: string = 'student',
+  ): Promise<AuthResponse> {
     try {
-      const response = await this.api.post<AuthResponse>('/auth/register', { email, password, role });
+      const response = await this.api.post<AuthResponse>('/auth/register', {
+        email,
+        password,
+        role,
+      });
       if (response.data.access_token) {
         await AsyncStorage.setItem('auth_token', response.data.access_token);
         await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
@@ -80,7 +88,10 @@ class AuthService {
   // Login
   async login(email: string, password: string): Promise<AuthResponse> {
     try {
-      const response = await this.api.post<AuthResponse>('/auth/login', { email, password });
+      const response = await this.api.post<AuthResponse>('/auth/login', {
+        email,
+        password,
+      });
       if (response.data.access_token) {
         await AsyncStorage.setItem('auth_token', response.data.access_token);
         await AsyncStorage.setItem('user', JSON.stringify(response.data.user));

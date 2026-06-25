@@ -54,7 +54,7 @@ class AuthService {
         if (error.response?.status === 401) {
           localStorage.removeItem('auth_token');
           localStorage.removeItem('user');
-          
+
           // SOLO redirigimos y recargamos si NO estamos ya en la pantalla de Auth
           if (currentPath !== '/auth' && currentPath !== '/login') {
             window.location.href = '/auth';
@@ -66,9 +66,17 @@ class AuthService {
   }
 
   // Registro de nuevo usuario
-  async register(email: string, password: string, role: string = 'student'): Promise<AuthResponse> {
+  async register(
+    email: string,
+    password: string,
+    role: string = 'student',
+  ): Promise<AuthResponse> {
     try {
-      const response = await this.api.post<AuthResponse>('/auth/register', { email, password, role });
+      const response = await this.api.post<AuthResponse>('/auth/register', {
+        email,
+        password,
+        role,
+      });
       if (response.data.access_token) {
         localStorage.setItem('auth_token', response.data.access_token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -85,7 +93,10 @@ class AuthService {
   // Login
   async login(email: string, password: string): Promise<AuthResponse> {
     try {
-      const response = await this.api.post<AuthResponse>('/auth/login', { email, password });
+      const response = await this.api.post<AuthResponse>('/auth/login', {
+        email,
+        password,
+      });
       if (response.data.access_token) {
         localStorage.setItem('auth_token', response.data.access_token);
         localStorage.setItem('user', JSON.stringify(response.data.user));

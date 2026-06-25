@@ -7,11 +7,11 @@ import { AuthForm } from '../components/organisms/AuthForm';
 export const AuthPage: React.FC = () => {
   // Estado para saber si estamos en login o registro
   const [formType, setFormType] = useState<'login' | 'register'>('login');
-  
+
   // Estados de carga y error
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const navigate = useNavigate();
 
   // Función para cambiar entre Login y Registro
@@ -30,12 +30,15 @@ export const AuthPage: React.FC = () => {
         await authService.login(formData.email, formData.password);
       } else {
         // Asignamos 'student' por defecto, o puedes mapear el rol que necesites
-        await authService.register(formData.email, formData.password, 'student');
+        await authService.register(
+          formData.email,
+          formData.password,
+          'student',
+        );
       }
-      
+
       // Si todo sale bien, lo disparamos al dashboard
       navigate('/dashboard');
-      
     } catch (err: any) {
       setError(err.message || 'Error al conectar con el servidor.');
       console.error(err);
@@ -48,7 +51,7 @@ export const AuthPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
       <div className="w-full max-w-md">
         {/* Aquí inyectamos tu Organismo exacto */}
-        <AuthForm 
+        <AuthForm
           type={formType}
           onToggleType={handleToggleType}
           onSubmit={handleAuthSubmit}

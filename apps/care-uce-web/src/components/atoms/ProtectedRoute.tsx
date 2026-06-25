@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   // Revisamos si existe el token en la memoria del navegador
   const token = localStorage.getItem('auth_token');
-  
+
   // Si no hay token, lo mandamos directo al login sin preguntar
   if (!token) {
     return <Navigate to="/auth" replace />;

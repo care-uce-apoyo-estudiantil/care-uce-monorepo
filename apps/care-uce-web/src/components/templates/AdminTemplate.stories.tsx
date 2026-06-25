@@ -26,7 +26,10 @@ export const Default: Story = {
     children: (
       <div className="p-8 bg-white border-2 border-dashed border-gray-300 rounded-lg text-center text-gray-500">
         <h2 className="text-xl font-semibold mb-2">Área de Contenido</h2>
-        <p>Aquí se inyectarán las páginas como el Dashboard o la Gestión de Usuarios.</p>
+        <p>
+          Aquí se inyectarán las páginas como el Dashboard o la Gestión de
+          Usuarios.
+        </p>
       </div>
     ),
   },
