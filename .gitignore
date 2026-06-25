@@ -76,3 +76,4 @@ storybook-static
 # Ignorar llaves SSH locales
 careuce_key
 careuce_key.pub
+test-output

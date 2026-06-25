@@ -2,7 +2,11 @@
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
-    "production": ["default"],
+    "production": [
+      "default",
+      "!{projectRoot}/.eslintrc.json",
+      "!{projectRoot}/eslint.config.mjs"
+    ],
     "sharedGlobals": []
   },
   "plugins": [
@@ -46,7 +50,18 @@
         "buildDepsTargetName": "build-deps",
         "watchDepsTargetName": "watch-deps"
       }
+    },
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "lint"
+      }
     }
   ],
-  "analytics": false
+  "analytics": false,
+  "targetDefaults": {
+    "test": {
+      "dependsOn": ["^build"]
+    }
+  }
 }

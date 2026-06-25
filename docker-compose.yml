@@ -12,5 +12,18 @@ services:
     volumes:
       - postgres_auth_data:/var/lib/postgresql/data
 
+  postgres-triage:
+    image: postgres:15-alpine
+    container_name: careuce-postgres-triage
+    environment:
+      POSTGRES_USER: ${TRIAGE_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${TRIAGE_DB_PASSWORD:-root}
+      POSTGRES_DB: ${TRIAGE_DB_NAME:-triage_db}
+    ports:
+      - '5434:5432' # Usamos el 5434 en tu PC para no chocar con el 5433 de auth
+    volumes:
+      - postgres_triage_data:/var/lib/postgresql/data
+
 volumes:
   postgres_auth_data:
+  postgres_triage_data:

@@ -11,6 +11,12 @@
     },
     {
       "path": "./apps/care-uce-mobile"
+    },
+    {
+      "path": "./apps/backend/triage-service-e2e"
+    },
+    {
+      "path": "./apps/backend/triage-service"
     }
   ]
 }
