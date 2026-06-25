@@ -11,16 +11,6 @@
     },
     {
       "path": "./apps/care-uce-mobile"
-    },
-    {
-      "path": "./apps/care-uce-web"
     }
-  ],
-  "ts-node": {
-    "compilerOptions": {
-      "module": "commonjs",
-      "moduleResolution": "node10",
-      "customConditions": null
-    }
-  }
+  ]
 }

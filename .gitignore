@@ -76,4 +76,3 @@ storybook-static
 # Ignorar llaves SSH locales
 careuce_key
 careuce_key.pub
-vite.config.*.timestamp*
