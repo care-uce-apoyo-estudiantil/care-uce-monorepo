@@ -150,18 +150,32 @@ resource "aws_launch_template" "app" {
                 -e JWT_SECRET="CareUceSuperSecretProd2024!" \
                 cvrobayo/careuce-triage:prod
 
-              # 3. Crear Nginx Config (Con rutas para ambos)
+              # 3. Crear Nginx Config (Con Health Check y Proxy Headers)
               mkdir -p /home/ubuntu/nginx
               cat << 'NGINX_CONF' > /home/ubuntu/nginx/nginx.conf
               events { worker_connections 1024; }
               http {
                   server {
                       listen 80;
+                      
+                      # 🔥 Requerido por AWS ALB Health Checks (Debe coincidir con path = "/" del ALB)
+                      location / {
+                          return 200 'CareUCE API Gateway is running in PROD!';
+                          add_header Content-Type text/plain;
+                      }
+
                       location /api/auth {
                           proxy_pass http://auth-service:3000;
+                          proxy_set_header Host $host;
+                          proxy_set_header X-Real-IP $remote_addr;
+                          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                       }
+                      
                       location /api/triage {
                           proxy_pass http://triage-service:3000;
+                          proxy_set_header Host $host;
+                          proxy_set_header X-Real-IP $remote_addr;
+                          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                       }
                   }
               }
