@@ -77,3 +77,4 @@ storybook-static
 careuce_key
 careuce_key.pub
 vite.config.*.timestamp*
+test-output

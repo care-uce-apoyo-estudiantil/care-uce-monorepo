@@ -28,10 +28,16 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: 🚀 Build and Push Docker Image (PROD)
+      - name: 🚀 Build and Push Auth Service (PROD)
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-auth:prod -f apps/backend/auth-service/Dockerfile .
           docker push ${{ secrets.DOCKER_USERNAME }}/careuce-auth:prod
+
+      # 🔥 NUEVO: Build and Push Triage Service (PROD)
+      - name: 🚀 Build and Push Triage Service (PROD)
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-triage:prod -f apps/backend/triage-service/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/careuce-triage:prod
 
   deploy-to-asg:
     name: 🚀 Refresh Auto Scaling Group (PROD)
@@ -43,7 +49,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }} # Crítico para el Learner Lab de AWS Academy
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
       - name: 🔄 Iniciar Instance Refresh en el ASG de Producción
