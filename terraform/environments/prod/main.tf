@@ -2,7 +2,7 @@ terraform {
   cloud {
     organization = "CareUCE"
     workspaces {
-      name = "careuce-prod"
+      name = "careuce-prod-second-account"
     }
   }
 }
@@ -123,42 +123,56 @@ resource "aws_launch_template" "app" {
               systemctl start docker
               usermod -aG docker ubuntu
 
-              # 1. Crear una red privada de Docker
+              # 1. Crear red privada
               docker network create careuce-prod-network
 
-              # 2. Iniciar el Auth Service en esa red, SIN exponer puertos (-p)
+              # 2. Iniciar Auth Service
               docker run -d --name auth-service \
-                --network careuce-prod-network \
-                --restart always \
-                -e PORT="3000" \
-                -e NODE_ENV="production" \
+                --network careuce-prod-network --restart always \
+                -e PORT="3000" -e NODE_ENV="production" \
                 -e DB_HOST="${aws_db_instance.auth_db.address}" \
                 -e DB_PORT="5432" \
                 -e DB_USER="${aws_db_instance.auth_db.username}" \
                 -e DB_PASSWORD="${aws_db_instance.auth_db.password}" \
                 -e DB_NAME="${aws_db_instance.auth_db.db_name}" \
                 -e JWT_SECRET="CareUceSuperSecretProd2024!" \
-                -e JWT_EXPIRATION="1h" \
                 cvrobayo/careuce-auth:prod
 
-              # 3. Crear el archivo de configuración para Nginx (SIN BARRAS FINALES)
+              # 🔥 NUEVO: Iniciar Triage Service
+              docker run -d --name triage-service \
+                --network careuce-prod-network --restart always \
+                -e PORT="3000" -e NODE_ENV="production" \
+                -e TRIAGE_DB_HOST="${aws_db_instance.triage_db.address}" \
+                -e TRIAGE_DB_PORT="5432" \
+                -e TRIAGE_DB_USER="${aws_db_instance.triage_db.username}" \
+                -e TRIAGE_DB_PASSWORD="${aws_db_instance.triage_db.password}" \
+                -e TRIAGE_DB_NAME="${aws_db_instance.triage_db.db_name}" \
+                -e JWT_SECRET="CareUceSuperSecretProd2024!" \
+                cvrobayo/careuce-triage:prod
+
+              # 3. Crear Nginx Config (Con Health Check y Proxy Headers)
               mkdir -p /home/ubuntu/nginx
               cat << 'NGINX_CONF' > /home/ubuntu/nginx/nginx.conf
-              events {
-                  worker_connections 1024;
-              }
+              events { worker_connections 1024; }
               http {
                   server {
                       listen 80;
                       
+                      # 🔥 Requerido por AWS ALB Health Checks (Debe coincidir con path = "/" del ALB)
                       location / {
                           return 200 'CareUCE API Gateway is running in PROD!';
                           add_header Content-Type text/plain;
                       }
-                      
-                      # 🔥 Corrección aplicada: Enrutamiento Transparente
+
                       location /api/auth {
                           proxy_pass http://auth-service:3000;
+                          proxy_set_header Host $host;
+                          proxy_set_header X-Real-IP $remote_addr;
+                          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                      }
+                      
+                      location /api/triage {
+                          proxy_pass http://triage-service:3000;
                           proxy_set_header Host $host;
                           proxy_set_header X-Real-IP $remote_addr;
                           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -169,8 +183,7 @@ resource "aws_launch_template" "app" {
 
               # 4. Iniciar Nginx
               docker run -d -p 80:80 --name api-gateway \
-                --network careuce-prod-network \
-                --restart always \
+                --network careuce-prod-network --restart always \
                 -v /home/ubuntu/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
                 nginx:alpine
               EOF
@@ -263,6 +276,25 @@ resource "aws_db_instance" "auth_db" {
   skip_final_snapshot    = true
 
   # Persistencia de la db
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+# Crear la Base de Datos PostgreSQL para Triage
+resource "aws_db_instance" "triage_db" {
+  identifier             = "careuce-triage-db-prod"
+  engine                 = "postgres"
+  engine_version         = "15"
+  instance_class         = "db.t3.micro"
+  allocated_storage      = 20
+  db_name                = "triage_db_prod"
+  username               = "postgres"
+  password               = "postgres" # Recuerda cambiar esto por una variable en entornos reales
+  db_subnet_group_name   = aws_db_subnet_group.db_subnet.name
+  vpc_security_group_ids = [aws_security_group.app_sg.id]
+  skip_final_snapshot    = true
+
   lifecycle {
     prevent_destroy = true
   }

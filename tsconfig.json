@@ -14,6 +14,12 @@
     },
     {
       "path": "./apps/care-uce-desktop"
+    },
+    {
+      "path": "./apps/backend/triage-service-e2e"
+    },
+    {
+      "path": "./apps/backend/triage-service"
     }
   ],
   "ts-node": {
