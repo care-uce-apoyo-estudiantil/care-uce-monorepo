@@ -88,5 +88,9 @@ jobs:
           sudo docker compose -f docker-compose.qa.yml pull
           sudo docker compose -f docker-compose.qa.yml up -d
 
+          # ⏳ Esperar a que Nginx esté completamente listo antes del reload
+          echo "⏳ Esperando a que el contenedor de Nginx inicie por completo..."
+          sleep 3
+
           sudo docker exec careuce-api-gateway-qa nginx -s reload
           EOF
