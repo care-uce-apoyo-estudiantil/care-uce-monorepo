@@ -2,7 +2,7 @@ terraform {
   cloud {
     organization = "CareUCE"
     workspaces {
-      name = "careuce-prod"
+      name = "careuce-prod-second-account"
     }
   }
 }
