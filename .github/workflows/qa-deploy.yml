@@ -3,7 +3,7 @@ name: QA Deployment Pipeline
 on:
   push:
     branches:
-      - feat/triage-v2
+      - QA
 
 jobs:
   ci-and-build:
