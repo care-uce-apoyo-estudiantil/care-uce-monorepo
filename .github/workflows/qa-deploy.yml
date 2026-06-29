@@ -3,7 +3,7 @@ name: QA Deployment Pipeline
 on:
   push:
     branches:
-      - feat/triage
+      - QA
 
 jobs:
   ci-and-build:
@@ -87,4 +87,6 @@ jobs:
           cd /home/ubuntu
           sudo docker compose -f docker-compose.qa.yml pull
           sudo docker compose -f docker-compose.qa.yml up -d
+
+          sudo docker exec careuce-api-gateway-qa nginx -s reload
           EOF
