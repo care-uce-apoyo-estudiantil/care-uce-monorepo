@@ -1,12 +1,14 @@
 import React from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link, useLocation, Outlet } from 'react-router-dom';
 import authService from '../../services/auth.service';
 
+// 1. Hacemos que 'children' sea opcional con el signo de interrogación (?)
 interface AdminTemplateProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
-export const AdminTemplate: React.FC<AdminTemplateProps> = ({ children }) => {
+// 2. Quitamos React.FC para que TypeScript en Storybook no se confunda
+export const AdminTemplate = ({ children }: AdminTemplateProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -122,7 +124,8 @@ export const AdminTemplate: React.FC<AdminTemplateProps> = ({ children }) => {
         </header>
 
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-8">
-          {children}
+          {/* 3. La magia: Si mandas children (Storybook) lo pinta. Si no (App.tsx), usa Outlet */}
+          {children ? children : <Outlet />}
         </main>
       </div>
     </div>

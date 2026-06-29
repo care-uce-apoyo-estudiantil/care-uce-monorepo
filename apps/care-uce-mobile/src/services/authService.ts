@@ -2,8 +2,8 @@ import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 🌍 GESTIÓN DE ENTORNOS (Descomenta el que vayas a usar)
-//const API_BASE_URL = 'http://192.168.1.4:3000/api'; // Local (Tu IP física)
-const API_BASE_URL = 'http://caruceqa.programacionwebuce.net/api'; // QA
+const API_BASE_URL = 'http://192.168.1.2:3000/api'; // Local (Tu IP física)
+//const API_BASE_URL = 'http://caruceqa.programacionwebuce.net/api'; // QA
 // const API_BASE_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
 
 export interface AuthResponse {

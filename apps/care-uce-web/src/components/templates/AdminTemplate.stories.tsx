@@ -1,14 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { BrowserRouter } from 'react-router-dom'; // <-- 1. Importamos el Router
+import { BrowserRouter } from 'react-router-dom';
 import { AdminTemplate } from './AdminTemplate';
 
 const meta: Meta<typeof AdminTemplate> = {
   title: 'Templates/AdminTemplate',
   component: AdminTemplate,
-  parameters: {
-    layout: 'fullscreen',
-  },
-  // <-- 2. Envolvemos la historia visual en un Router simulado
+  parameters: { layout: 'fullscreen' },
   decorators: [
     (Story) => (
       <BrowserRouter>
@@ -28,7 +25,7 @@ export const Default: Story = {
         <h2 className="text-xl font-semibold mb-2">Área de Contenido</h2>
         <p>
           Aquí se inyectarán las páginas como el Dashboard o la Gestión de
-          Usuarios.
+          Estudiantes.
         </p>
       </div>
     ),

@@ -14,6 +14,12 @@
     },
     {
       "path": "./apps/care-uce-web"
+    },
+    {
+      "path": "./care-uce-desktop"
+    },
+    {
+      "path": "./apps/care-uce-desktop"
     }
   ],
   "ts-node": {
