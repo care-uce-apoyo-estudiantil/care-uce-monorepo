@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { AdminTemplate } from '../components/templates/AdminTemplate';
 
 export const DashboardPage: React.FC = () => {
-  // 1. Convertimos los números quemados en "Estados" vivos
+  // Estados para simular data en tiempo real
   const [alertasCriticas, setAlertasCriticas] = useState(3);
   const [intervenciones, setIntervenciones] = useState(128);
 
-  // 2. Metemos los datos de la tabla en un array manejable
   const [casosPendientes, setCasosPendientes] = useState([
     {
       id: 'EST-2026-8901',
@@ -22,18 +20,14 @@ export const DashboardPage: React.FC = () => {
     },
   ]);
 
-  // 3. La función mágica de la presentación
   const handleAtenderCaso = (id: string) => {
-    // Quitamos al estudiante de la tabla
     setCasosPendientes(casosPendientes.filter((caso) => caso.id !== id));
-    // Bajamos el contador de alertas
     setAlertasCriticas((prev) => (prev > 0 ? prev - 1 : 0));
-    // Subimos el éxito de intervenciones
     setIntervenciones((prev) => prev + 1);
   };
 
   return (
-    <AdminTemplate>
+    <div className="space-y-8">
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-800">Resumen Operativo</h2>
         <p className="text-gray-500">
@@ -41,9 +35,9 @@ export const DashboardPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Tarjetas de Estadísticas Dinámicas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-red-500 transition-all">
+      {/* Tarjetas de Estadísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-red-500">
           <h3 className="text-red-500 text-xs font-bold uppercase tracking-wide">
             Alertas Críticas Activas
           </h3>
@@ -57,7 +51,7 @@ export const DashboardPage: React.FC = () => {
           </h3>
           <p className="text-4xl font-extrabold text-gray-800 mt-2">14</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500 transition-all">
+        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
           <h3 className="text-green-500 text-xs font-bold uppercase tracking-wide">
             Intervenciones Exitosas
           </h3>
@@ -117,14 +111,13 @@ export const DashboardPage: React.FC = () => {
                   colSpan={4}
                   className="px-6 py-8 text-center text-gray-400 italic"
                 >
-                  No hay alertas críticas pendientes en este momento. ¡Excelente
-                  trabajo!
+                  No hay alertas críticas pendientes. ¡Excelente trabajo!
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-    </AdminTemplate>
+    </div>
   );
 };
