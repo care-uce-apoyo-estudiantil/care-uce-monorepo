@@ -10,13 +10,7 @@
       "path": "./apps/backend/auth-service"
     },
     {
-      "path": "./apps/care-uce-mobile"
-    },
-    {
       "path": "./apps/care-uce-web"
-    },
-    {
-      "path": "./care-uce-desktop"
     },
     {
       "path": "./apps/care-uce-desktop"
