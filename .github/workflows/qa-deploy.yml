@@ -81,6 +81,12 @@ jobs:
           echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
           # 3. LIMPIEZA PREVIA: Borrar contenedores apagados e imágenes viejas para liberar RAM/Disco
+          cd /home/ubuntu
+
+          echo "🛑 Apagando contenedores actuales para liberar sus imágenes..."
+          sudo docker compose -f docker-compose.qa.yml down || true
+
+          echo "🗑️ Borrando por completo imágenes y caché viejas..."
           sudo docker system prune -af --volumes
 
           # 4. Levantar Infraestructura
