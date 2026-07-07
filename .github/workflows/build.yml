@@ -1,0 +1,23 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - QA-cr
+
+jobs:
+  build:
+    name: Build and analyze
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Desactiva clones superficiales para un mejor análisis de SonarQube
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_CR }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
