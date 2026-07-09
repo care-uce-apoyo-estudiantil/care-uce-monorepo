@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ClientKafka } from '@nestjs/microservices';
 import { CreateTriageDto } from './dto/create-triage.dto';
 import { UpdateTriageDto } from './dto/update-triage.dto';
 import { Triage, RiskLevel } from './entities/triage.entity';
@@ -10,6 +11,8 @@ export class TriageService {
   constructor(
     @InjectRepository(Triage)
     private readonly triageRepository: Repository<Triage>,
+    // Inyectamos Kafka usando el nombre que definimos en el módulo
+    @Inject('KAFKA_SERVICE') private readonly kafkaClient: ClientKafka,
   ) {}
 
   async create(studentId: string, createTriageDto: CreateTriageDto) {
@@ -28,13 +31,25 @@ export class TriageService {
     else if (totalScore >= 10) risk = RiskLevel.MODERATE;
 
     const newTriage = this.triageRepository.create({
-      studentId: studentId, // 🔥 Lo usamos directamente aquí
+      studentId: studentId,
       answers: answers,
       score: totalScore,
       riskLevel: risk,
     });
 
-    return await this.triageRepository.save(newTriage);
+    const savedTriage = await this.triageRepository.save(newTriage);
+
+    // 🔥 PATRÓN EVENT-DRIVEN: Emisión del evento inmutable
+    if (risk === RiskLevel.CRITICAL || risk === RiskLevel.HIGH) {
+      this.kafkaClient.emit('triage.risk.detected', {
+        studentId: savedTriage.studentId,
+        triageId: savedTriage.id,
+        riskLevel: savedTriage.riskLevel,
+        timestamp: savedTriage.createdAt || new Date().toISOString(),
+      });
+    }
+
+    return savedTriage;
   }
 
   async findAll() {
