@@ -28,7 +28,7 @@ WORKDIR /app
 
 # Copiamos los artefactos generados desde el builder
 # Nx por defecto compila en la raíz dentro de la carpeta /dist/apps/...
-COPY --from=builder /app/dist/apps/auth-service ./dist
+COPY --from=builder /app/apps/backend/auth-service/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 
