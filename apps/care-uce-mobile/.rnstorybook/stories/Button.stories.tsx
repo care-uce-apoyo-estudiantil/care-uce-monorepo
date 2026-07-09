@@ -1,7 +1,8 @@
-import type { Meta, StoryObj } from '@storybook/react-native';
+import type { Meta, StoryObj } from '@storybook/react';
 
 import { View } from 'react-native';
-import { fn } from 'storybook/test';
+// Use a simple noop for storybook action when '@storybook/test' is unavailable
+const fn = () => undefined;
 
 import { Button } from './Button';
 
