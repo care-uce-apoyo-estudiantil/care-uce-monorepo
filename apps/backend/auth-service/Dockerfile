@@ -20,7 +20,7 @@ COPY apps/backend/auth-service/ ./apps/backend/auth-service/
 RUN npm ci
 
 # 5. Construimos el microservicio usando el contexto completo
-RUN npx nx build auth-service --prod
+RUN npx nx sync && npx nx build auth-service --prod
 
 # Etapa 2: Producción
 FROM node:22-alpine
