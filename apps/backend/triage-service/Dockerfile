@@ -34,7 +34,6 @@ COPY packages/ ./packages/
 RUN npm ci --only=production --legacy-peer-deps
 
 # Copiamos los artefactos compilados desde el build (Ruta estándar de salida de Nx)
-COPY --from=build /usr/src/app/dist/apps/triage-service ./dist
-
+COPY --from=build /usr/src/app/dist/apps/backend/triage-service ./dist
 EXPOSE 3000
 CMD ["node", "dist/main.js"]
