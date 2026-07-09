@@ -5,7 +5,7 @@ COPY package*.json ./
 RUN npm ci
 COPY . .
 # Construimos solo el microservicio auth-service usando Nx
-RUN npx nx build auth-service --prod --skip-nx-cache
+RUN npx nx build auth-service --prod
 
 # Etapa 2: Producción
 FROM node:22-alpine
