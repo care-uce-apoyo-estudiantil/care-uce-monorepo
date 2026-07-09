@@ -23,7 +23,9 @@ export class AppService {
     private readonly clinicalRecordModel: Model<ClinicalRecordDocument>,
   ) {}
 
-  async createTemporaryRecord(payload: Omit<TriagePayload, 'createdAt'>): Promise<ClinicalRecordDocument> {
+  async createTemporaryRecord(
+    payload: Omit<TriagePayload, 'createdAt'>,
+  ): Promise<ClinicalRecordDocument> {
     const dataToSave: TriagePayload = {
       ...payload,
       createdAt: new Date(),

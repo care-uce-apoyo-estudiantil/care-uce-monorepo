@@ -24,7 +24,7 @@ describe('AppController', () => {
 
     appController = app.get<AppController>(AppController);
     // Fixed: Passing the class token instead of the instance
-    appService = app.get<AppService>(AppService); 
+    appService = app.get<AppService>(AppService);
   });
 
   describe('handleTriageRiskDetected', () => {
@@ -40,7 +40,9 @@ describe('AppController', () => {
       await appController.handleTriageRiskDetected(mockPayload);
 
       // Verify that the service was called
-      expect(mockAppService.createTemporaryRecord).toHaveBeenCalledWith(mockPayload);
+      expect(mockAppService.createTemporaryRecord).toHaveBeenCalledWith(
+        mockPayload,
+      );
       // Ensure the appService variable is actually used to satisfy ESLint
       expect(appService).toBeDefined();
     });
