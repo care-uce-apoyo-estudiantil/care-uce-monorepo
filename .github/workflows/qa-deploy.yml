@@ -3,7 +3,7 @@ name: QA Deployment Pipeline
 on:
   push:
     branches:
-      - nx-libs
+      - feat/nx-libs
 
 jobs:
   ci-and-build:
