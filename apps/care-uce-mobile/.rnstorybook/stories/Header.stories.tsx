@@ -1,5 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-native';
-
+import type { Meta, StoryObj } from '@storybook/react';
 import { Header } from './Header';
 
 const meta = {
@@ -18,16 +17,16 @@ export const LoggedIn: Story = {
     user: {
       name: 'Jane Doe',
     },
-    onLogin: () => {},
-    onLogout: () => {},
-    onCreateAccount: () => {},
+    onLogin: () => console.log('Login clicked'),
+    onLogout: () => console.log('Logout clicked'),
+    onCreateAccount: () => console.log('Create account clicked'),
   },
 };
 
 export const LoggedOut: Story = {
   args: {
-    onLogin: () => {},
-    onLogout: () => {},
-    onCreateAccount: () => {},
+    onLogin: () => console.log('Login clicked'),
+    onLogout: () => console.log('Logout clicked'),
+    onCreateAccount: () => console.log('Create account clicked'),
   },
 };
