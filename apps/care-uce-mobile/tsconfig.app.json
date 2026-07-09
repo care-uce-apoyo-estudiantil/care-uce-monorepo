@@ -9,6 +9,8 @@
     "moduleResolution": "bundler",
     "noUnusedLocals": false,
     "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
     "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo"
   },
   "files": ["../../node_modules/@nx/expo/typings/svg.d.ts"],
