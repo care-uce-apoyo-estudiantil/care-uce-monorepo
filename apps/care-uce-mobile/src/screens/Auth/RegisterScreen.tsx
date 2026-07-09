@@ -26,7 +26,7 @@ export const RegisterScreen = () => {
 
   // Form state
   const [fullName, setFullName] = useState('');
-  const [cedula, setCedula] = useState(''); // Cambiado de enrollment a cedula
+  const [cedula, setCedula] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -35,7 +35,7 @@ export const RegisterScreen = () => {
     useState(false);
 
   /**
-   * Valida el email institucional
+   * Validates institutional email format
    */
   const isValidEmail = (emailToValidate: string): boolean => {
     const emailRegex = /^[^\s@]+@uce\.edu\.ec$/;
@@ -43,7 +43,7 @@ export const RegisterScreen = () => {
   };
 
   /**
-   * Valida el formulario antes de registrar
+   * Pre-validates the form before calling the backend
    */
   const validateForm = (): boolean => {
     if (!fullName.trim()) {
@@ -51,22 +51,12 @@ export const RegisterScreen = () => {
       return false;
     }
 
-    // Validación de la cédula: que no esté vacía, sea solo números y tenga 10 dígitos
     const isNumeric = /^\d+$/.test(cedula.trim());
-    if (!cedula.trim()) {
-      Alert.alert('Error', 'Por favor ingresa tu número de cédula');
-      return false;
-    }
-    if (cedula.trim().length !== 10 || !isNumeric) {
+    if (!cedula.trim() || cedula.trim().length !== 10 || !isNumeric) {
       Alert.alert(
         'Error',
         'La cédula debe tener exactamente 10 dígitos numéricos',
       );
-      return false;
-    }
-
-    if (!email.trim()) {
-      Alert.alert('Error', 'Por favor ingresa tu email institucional');
       return false;
     }
 
@@ -78,13 +68,8 @@ export const RegisterScreen = () => {
       return false;
     }
 
-    if (!password.trim()) {
-      Alert.alert('Error', 'Por favor crea una contraseña');
-      return false;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+    if (password.length < 8) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 8 caracteres');
       return false;
     }
 
@@ -97,7 +82,7 @@ export const RegisterScreen = () => {
   };
 
   /**
-   * Maneja el registro con validación
+   * Handles the registration process
    */
   const handleRegister = async () => {
     clearError();
@@ -107,26 +92,36 @@ export const RegisterScreen = () => {
     }
 
     try {
-      // ⚠️ NOTA IMPORTANTE: Si vas a enviar el Nombre y Cédula al backend,
-      // deberás actualizar register() en tu useAuth.ts para recibirlos.
-      await register(email.trim(), password);
+      // Build the payload mapping our local state to the expected DTO properties
+      const payload = {
+        fullName: fullName.trim(),
+        idCard: cedula.trim(), // Map cedula to idCard
+        email: email.trim(),
+        password,
+        confirmPassword,
+      };
+
+      // Ensure your useAuth hook passes this entire object to authService.register
+      await register(payload);
 
       Alert.alert('¡Éxito!', '¡Bienvenido a CareUCE!');
       router.replace('/home');
-    } catch (err: any) {
-      Alert.alert(
-        'Error en el registro',
-        error || 'Algo salió mal. Intenta nuevamente.',
-      );
+    } catch (err: unknown) {
+      // ESLint fix: removed 'any'
+      // Safely extract the message without assuming it's 'any'
+      const errorMessage =
+        (err as { message?: string })?.message ||
+        error ||
+        'Algo salió mal. Intenta nuevamente.';
+      Alert.alert('Error en el registro', errorMessage);
     }
   };
 
   /**
-   * Navega de vuelta al login
+   * Navigates back to login and clears the form
    */
   const handleNavigateToLogin = () => {
     clearError();
-    // Limpiar formulario
     setFullName('');
     setCedula('');
     setEmail('');
@@ -146,13 +141,6 @@ export const RegisterScreen = () => {
         <Text style={styles.subtitle}>Únete a la red de apoyo CareUCE</Text>
       </View>
 
-      {/* Error Message */}
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
       {/* Form Section */}
       <View style={styles.formContainer}>
         <InputWithIcon
@@ -162,7 +150,6 @@ export const RegisterScreen = () => {
           onChangeText={setFullName}
           editable={!isLoading}
         />
-
         <InputWithIcon
           icon={FileDigit}
           placeholder="Número de Cédula (10 dígitos)"
@@ -170,7 +157,6 @@ export const RegisterScreen = () => {
           onChangeText={setCedula}
           editable={!isLoading}
         />
-
         <InputWithIcon
           icon={Mail}
           placeholder="Email Institucional (@uce.edu.ec)"
@@ -178,10 +164,9 @@ export const RegisterScreen = () => {
           onChangeText={setEmail}
           editable={!isLoading}
         />
-
         <InputWithIcon
           icon={Lock}
-          placeholder="Crear Contraseña (mín. 6 caracteres)"
+          placeholder="Crear Contraseña"
           secureTextEntry={!isPasswordVisible}
           rightIcon={isPasswordVisible ? EyeOff : Eye}
           onRightIconPress={() => setPasswordVisible(!isPasswordVisible)}
@@ -189,7 +174,6 @@ export const RegisterScreen = () => {
           onChangeText={setPassword}
           editable={!isLoading}
         />
-
         <InputWithIcon
           icon={Lock}
           placeholder="Confirmar Contraseña"
@@ -240,20 +224,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subtitle: { fontSize: 16, fontFamily: 'Inter-Regular', color: '#666666' },
-  errorContainer: {
-    backgroundColor: '#FFEBEE',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#CC3333',
-  },
-  errorText: {
-    color: '#CC3333',
-    fontFamily: 'Inter',
-    fontSize: 14,
-    fontWeight: '500',
-  },
   formContainer: { marginBottom: 30 },
   buttonWrapper: { marginTop: 15 },
   loadingButton: {

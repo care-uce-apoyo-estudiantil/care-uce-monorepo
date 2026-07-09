@@ -1,14 +1,22 @@
-// src/components/organisms/AuthForm.tsx
 import { useState } from 'react';
 import { InputField } from '../atoms/InputField';
 import { Button } from '../atoms/Button';
 import { OAuthButtons } from '../molecules/OAuthButtons';
 
+// 1. Define the interface to strictly type the form data and eliminate 'any'
+export interface AuthFormData {
+  email: string;
+  password: string;
+  fullName?: string;
+  idCard?: string;
+  confirmPassword?: string;
+}
+
 interface AuthFormProps {
   type: 'login' | 'register';
   onToggleType: () => void;
-  // Agregamos estas tres propiedades clave:
-  onSubmit: (formData: any) => void;
+  // 2. Replace 'any' with our new interface
+  onSubmit: (formData: AuthFormData) => void;
   isLoading?: boolean;
   error?: string;
 }
@@ -20,16 +28,18 @@ export const AuthForm = ({
   isLoading,
   error,
 }: AuthFormProps) => {
-  const [formData, setFormData] = useState({
-    nombre: '',
-    cedula: '',
+  // 3. Map state variables exactly to match the backend DTO requirements
+  const [formData, setFormData] = useState<AuthFormData>({
+    fullName: '',
+    idCard: '',
     email: '',
     password: '',
+    confirmPassword: '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault(); // Evita que la página se recargue
-    onSubmit(formData); // Envía los datos a la página principal
+    e.preventDefault(); // Prevent page reload
+    onSubmit(formData); // Send structured data to the parent page
   };
 
   return (
@@ -38,7 +48,7 @@ export const AuthForm = ({
         {type === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}
       </h2>
 
-      {/* Agregamos el evento onSubmit al form */}
+      {/* Attach handleSubmit to the form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         {type === 'register' && (
           <>
@@ -46,23 +56,25 @@ export const AuthForm = ({
               label="Nombre Completo"
               type="text"
               onChange={(e) =>
-                setFormData({ ...formData, nombre: e.target.value })
+                setFormData({ ...formData, fullName: e.target.value })
               }
             />
             <InputField
               label="Cédula"
               type="text"
               onChange={(e) =>
-                setFormData({ ...formData, cedula: e.target.value })
+                setFormData({ ...formData, idCard: e.target.value })
               }
             />
           </>
         )}
+
         <InputField
           label="Correo Institucional / Gmail"
           type="email"
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
         />
+
         <InputField
           label="Contraseña"
           type="password"
@@ -71,14 +83,25 @@ export const AuthForm = ({
           }
         />
 
-        {/* Mostrar mensaje de error si existe */}
+        {/* 4. Add the Confirm Password input for registration */}
+        {type === 'register' && (
+          <InputField
+            label="Confirmar Contraseña"
+            type="password"
+            onChange={(e) =>
+              setFormData({ ...formData, confirmPassword: e.target.value })
+            }
+          />
+        )}
+
+        {/* Display error message if it exists */}
         {error && (
           <div className="text-red-500 text-sm font-semibold text-center animate-pulse">
             {error}
           </div>
         )}
 
-        {/* Solo dejamos el div como un contenedor normal para el margen */}
+        {/* Submit button container */}
         <div className="mt-4">
           <Button
             label={

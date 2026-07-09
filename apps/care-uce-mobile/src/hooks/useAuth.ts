@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import authService, { AuthResponse, User } from '../services/authService';
+// 1. Removed unused AuthResponse and imported RegisterPayload
+import authService, { User, RegisterPayload } from '../services/authService';
 
 export interface UseAuthReturn {
   isLoading: boolean;
@@ -7,7 +8,8 @@ export interface UseAuthReturn {
   user: User | null;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  // 2. Updated register signature to accept the complete payload
+  register: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -18,7 +20,7 @@ export const useAuth = (): UseAuthReturn => {
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Verificar si hay sesión al iniciar
+  // Check if there is an active session on startup
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
@@ -29,7 +31,8 @@ export const useAuth = (): UseAuthReturn => {
           const storedUser = await authService.getStoredUser();
           setUser(storedUser);
         }
-      } catch (err) {
+      } catch (err: unknown) {
+        // ESLint fix: replaced any with unknown
         console.error('Error checking auth status:', err);
       }
     };
@@ -45,8 +48,12 @@ export const useAuth = (): UseAuthReturn => {
       const response = await authService.login(email, password);
       setUser(response.user);
       setIsAuthenticated(true);
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión');
+    } catch (err: unknown) {
+      // ESLint fix: replaced any with unknown
+      // Safely extract the error message
+      const errorMessage =
+        (err as { message?: string })?.message || 'Error during login';
+      setError(errorMessage);
       setIsAuthenticated(false);
       throw err;
     } finally {
@@ -54,16 +61,26 @@ export const useAuth = (): UseAuthReturn => {
     }
   }, []);
 
-  const register = useCallback(async (email: string, password: string) => {
+  // 3. Updated function to receive the complete payload
+  const register = useCallback(async (payload: RegisterPayload) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await authService.register(email, password, 'student');
-      setUser(response.user);
-      setIsAuthenticated(true);
-    } catch (err: any) {
-      setError(err.message || 'Error al registrarse');
+      // Send the payload to the service
+      const response = await authService.register(payload);
+
+      // If your backend doesn't return the user object immediately upon registration,
+      // you might need to adjust this depending on your API design.
+      if (response.user) {
+        setUser(response.user);
+        setIsAuthenticated(true);
+      }
+    } catch (err: unknown) {
+      // ESLint fix: replaced any with unknown
+      const errorMessage =
+        (err as { message?: string })?.message || 'Error during registration';
+      setError(errorMessage);
       setIsAuthenticated(false);
       throw err;
     } finally {
@@ -78,8 +95,10 @@ export const useAuth = (): UseAuthReturn => {
       setUser(null);
       setIsAuthenticated(false);
       setError(null);
-    } catch (err: any) {
-      setError('Error al cerrar sesión');
+    } catch (err: unknown) {
+      // ESLint fix: replaced any with unknown
+      console.error(err);
+      setError('Error during logout');
     } finally {
       setIsLoading(false);
     }

@@ -6,18 +6,27 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-@Entity('users') // Nombre de la tabla en PostgreSQL
+@Entity('users') // Table name in PostgreSQL
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ name: 'full_name' })
+  full_name!: string;
+
+  @Column({ name: 'id_card', unique: true, length: 10 })
+  id_card!: string;
+
   @Column({ unique: true })
   email!: string;
 
-  @Column()
-  password_hash!: string; // Guardaremos la contraseña encriptada
+  @Column({ name: 'is_email_verified', default: false })
+  is_email_verified!: boolean; // False by default, needs verification for @gmail.com
 
-  @Column({ default: 'student' }) // Roles: student, psychologist, admin
+  @Column()
+  password_hash!: string; // Encrypted password
+
+  @Column({ default: 'student' }) // Roles: student, health_professional, control_personnel, admin
   role!: string;
 
   @Column({ default: true })

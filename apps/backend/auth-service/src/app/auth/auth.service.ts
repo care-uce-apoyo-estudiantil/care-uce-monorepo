@@ -2,12 +2,15 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../users/user.entity';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
@@ -18,54 +21,82 @@ export class AuthService {
   ) {}
 
   async register(
-    email: string,
-    pass: string,
-    role: string = 'student',
-  ): Promise<any> {
-    // 1. Verificamos si el usuario ya existe
-    const existingUser = await this.userRepository.findOne({
-      where: { email },
-    });
-    if (existingUser) {
-      throw new ConflictException('El usuario ya existe en CareUCE');
+    registerDto: RegisterDto,
+    clientOrigin: string,
+  ): Promise<Omit<User, 'password_hash'>> {
+    const { fullName, idCard, email, password, confirmPassword } = registerDto;
+
+    // 1. Password confirmation check
+    if (password !== confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
     }
 
-    // 2. Encriptamos la contraseña (10 rondas de salting)
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(pass, saltRounds);
-
-    // 3. Creamos el objeto usuario
-    const newUser = this.userRepository.create({
-      email,
-      password_hash: hashedPassword,
-      role,
+    // 2. Check if user or ID card already exists
+    const existingUser = await this.userRepository.findOne({
+      where: [{ email }, { id_card: idCard }],
     });
 
-    // 4. Lo guardamos en PostgreSQL
+    if (existingUser) {
+      throw new ConflictException(
+        'User email or ID Card already exists in CareUCE',
+      );
+    }
+
+    // 3. Determine role based on the origin of the request
+    let assignedRole = 'student'; // Default for mobile
+    if (clientOrigin === 'desktop') {
+      assignedRole = 'health_professional';
+    } else if (clientOrigin === 'web') {
+      assignedRole = 'control_personnel';
+    }
+
+    // 4. Hash the password with 10 salt rounds for security
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // 5. Create user object
+    const newUser = this.userRepository.create({
+      full_name: fullName,
+      id_card: idCard,
+      email,
+      password_hash: hashedPassword,
+      role: assignedRole,
+      is_email_verified: email.endsWith('@uce.edu.ec'), // Auto-verify if institutional
+    });
+
+    // 6. Save to PostgreSQL
     const savedUser = await this.userRepository.save(newUser);
 
-    // 5. Retornamos el usuario (¡pero nunca la contraseña!)
+    // 7. Return user without the password hash
+    // Fix: We intentionally extract password_hash to exclude it from the result.
+    // We disable the ESLint rule for the next line because the variable is meant to be unused.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password_hash, ...result } = savedUser;
+
     return result;
   }
 
-  async login(email: string, pass: string): Promise<any> {
-    // 1. Buscamos al usuario por su email
+  async login(
+    loginDto: LoginDto,
+  ): Promise<{ access_token: string; user: Partial<User> }> {
+    const { email, password } = loginDto;
+
+    // 1. Find user by email
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    // 2. Comparamos la contraseña enviada con el hash de la BD
-    const isPasswordValid = await bcrypt.compare(pass, user.password_hash);
+    // 2. Compare incoming password with stored hash
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    // 3. Creamos el "Payload" (los datos públicos que viajarán en el token)
+    // 3. Create the JWT payload
     const payload = { sub: user.id, email: user.email, role: user.role };
 
-    // 4. Firmamos y retornamos el JWT junto con los datos básicos
+    // 4. Sign and return the JWT
     return {
       access_token: this.jwtService.sign(payload),
       user: {

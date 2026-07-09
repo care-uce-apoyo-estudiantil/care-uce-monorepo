@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://100.28.235.67:3000/api';
+//const API_URL = import.meta.env.VITE_API_URL || 'http://100.28.235.67:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://10.10.12.162:3000/api';
 
 class AuthService {
   // Login (Se queda igual)

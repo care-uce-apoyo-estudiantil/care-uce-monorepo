@@ -1,27 +1,27 @@
-// src/pages/AuthPage.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth.service';
-import { AuthForm } from '../components/organisms/AuthForm';
+import { AuthForm, AuthFormData } from '../components/organisms/AuthForm';
 
 export const AuthPage: React.FC = () => {
-  // Estado para saber si estamos en login o registro
+  // State to track whether we are in login or register mode
   const [formType, setFormType] = useState<'login' | 'register'>('login');
 
-  // Estados de carga y error
+  // Loading and error states
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const navigate = useNavigate();
 
-  // Función para cambiar entre Login y Registro
+  // Function to toggle between Login and Registration views
   const handleToggleType = () => {
     setFormType(formType === 'login' ? 'register' : 'login');
-    setError(''); // Limpiamos errores al cambiar de vista
+    setError(''); // Clear errors when switching views
   };
 
-  // Función que recibe los datos desde el AuthForm y llama al backend
-  const handleAuthSubmit = async (formData: any) => {
+  // Function that receives structured data from AuthForm and calls the backend
+  // Replaced 'any' with 'AuthFormData'
+  const handleAuthSubmit = async (formData: AuthFormData) => {
     setIsLoading(true);
     setError('');
 
@@ -29,18 +29,20 @@ export const AuthPage: React.FC = () => {
       if (formType === 'login') {
         await authService.login(formData.email, formData.password);
       } else {
-        // Asignamos 'student' por defecto, o puedes mapear el rol que necesites
-        await authService.register(
-          formData.email,
-          formData.password,
-          'student',
-        );
+        // Send the entire formData object directly to the service
+        // Do not pass the role manually, the backend handles it via headers
+        await authService.register(formData);
       }
 
-      // Si todo sale bien, lo disparamos al dashboard
+      // If successful, redirect to dashboard
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Error al conectar con el servidor.');
+    } catch (err: unknown) {
+      // Replaced 'any' with 'unknown' for strict typing
+      if (err instanceof Error) {
+        setError(err.message || 'Server connection error.');
+      } else {
+        setError('An unexpected error occurred.');
+      }
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -50,7 +52,7 @@ export const AuthPage: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
       <div className="w-full max-w-md">
-        {/* Aquí inyectamos tu Organismo exacto */}
+        {/* Inject the strictly typed AuthForm */}
         <AuthForm
           type={formType}
           onToggleType={handleToggleType}

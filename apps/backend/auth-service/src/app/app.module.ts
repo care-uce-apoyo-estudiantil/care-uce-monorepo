@@ -9,12 +9,13 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
 @Module({
   imports: [
-    // 1. Cargamos las variables del archivo .env
+    // 1. Dynamic Environment File Loading configuration
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      // Generates an array of paths: ['.env.development', '.env'] or ['.env.production', '.env']
+      envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`, '.env'],
     }),
-    // 2. Configuramos TypeORM inyectando las variables
+    // 2. Configure TypeORM with the injected environment variables
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -31,22 +32,18 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
           database: configService.get<string>('DB_NAME'),
           entities: [User],
           autoLoadEntities: true,
-          // Apaga synchronize en PROD automáticamente para evitar borrar datos
-          synchronize: true,
-          // 🔥 EL ARREGLO: Activa SSL solo en AWS
+          synchronize: !isProduction, // Disable automatic synchronization in production environments
           ssl: isProduction ? { rejectUnauthorized: false } : false,
         };
       },
     }),
-    // 3. ¡Registramos nuestro nuevo módulo de Autenticación aquí!
     AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule implements NestModule {
-  // 4. Implementamos la configuración del Middleware
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('*'); // Aplica a TODAS las rutas ('*')
+    consumer.apply(LoggerMiddleware).forRoutes('*');
   }
 }
