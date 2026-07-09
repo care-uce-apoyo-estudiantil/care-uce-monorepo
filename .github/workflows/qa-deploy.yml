@@ -3,7 +3,7 @@ name: QA Deployment Pipeline
 on:
   push:
     branches:
-      - kafka # Cambia esto a la rama correcta desde donde vas a lanzar, ej. feat/triage-v2 o qa
+      - QA
 
 jobs:
   ci-and-build:

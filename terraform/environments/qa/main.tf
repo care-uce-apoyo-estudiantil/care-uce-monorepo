@@ -62,6 +62,11 @@ resource "aws_instance" "qa_server" {
   ami                  = "ami-0c7217cdde317cfec" # Ubuntu 22.04 LTS us-east-1
   instance_type        = var.instance_type # t3.medium
   iam_instance_profile = "LabInstanceProfile"
+  root_block_device {
+    volume_size = 20    # Tamaño en GB
+    volume_type = "gp3" # Recomendado por costo/rendimiento
+    delete_on_termination = true
+  }
   
   # Conexión a la red
   subnet_id                   = module.vpc.public_subnet_ids[0]
