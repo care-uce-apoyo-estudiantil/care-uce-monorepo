@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../users/user.entity';
+import type { JwtPayload } from '@org/shared-types';
 
 @Injectable()
 export class AuthService {
@@ -20,7 +21,7 @@ export class AuthService {
   async register(
     email: string,
     pass: string,
-    role: string = 'student',
+    role = 'student',
   ): Promise<any> {
     // 1. Verificamos si el usuario ya existe
     const existingUser = await this.userRepository.findOne({
@@ -49,7 +50,7 @@ export class AuthService {
     return result;
   }
 
-  async login(email: string, pass: string): Promise<any> {
+  async login(email: string, pass: string): Promise<{ access_token: string; user: { id: string; email: string; role: string } }> {
     // 1. Buscamos al usuario por su email
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
@@ -63,7 +64,7 @@ export class AuthService {
     }
 
     // 3. Creamos el "Payload" (los datos públicos que viajarán en el token)
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const payload: JwtPayload = { sub: user.id, email: user.email, role: user.role };
 
     // 4. Firmamos y retornamos el JWT junto con los datos básicos
     return {

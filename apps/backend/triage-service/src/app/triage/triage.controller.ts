@@ -12,7 +12,7 @@ import {
 import { TriageService } from './triage.service';
 import { CreateTriageDto } from './dto/create-triage.dto';
 import { UpdateTriageDto } from './dto/update-triage.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '@org/shared-auth';
 
 @UseGuards(JwtAuthGuard)
 @Controller('triage')

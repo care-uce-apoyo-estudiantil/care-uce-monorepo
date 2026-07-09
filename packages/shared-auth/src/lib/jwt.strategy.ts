@@ -6,15 +6,22 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(configService: ConfigService) {
+    const secret = configService.get<string>('JWT_SECRET');
+    if (!secret) {
+      throw new Error(
+        'JWT_SECRET environment variable is not defined. ' +
+          'The application cannot start without a valid JWT secret.',
+      );
+    }
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') as string,
+      secretOrKey: secret,
     });
   }
 
-  async validate(payload: any) {
-    // Este payload es lo que desencripta NestJS del token.
+  async validate(payload: { sub: string; email: string; role: string }) {
     // Lo que retornemos aquí, NestJS lo inyectará en 'req.user'
     return { userId: payload.sub, email: payload.email, role: payload.role };
   }

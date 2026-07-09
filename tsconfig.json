@@ -20,6 +20,12 @@
     },
     {
       "path": "./apps/backend/triage-service"
+    },
+    {
+      "path": "./packages/shared-types"
+    },
+    {
+      "path": "./packages/shared-auth"
     }
   ],
   "ts-node": {
