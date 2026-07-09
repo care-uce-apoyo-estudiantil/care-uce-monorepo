@@ -20,6 +20,12 @@
     },
     {
       "path": "./apps/backend/triage-service"
+    },
+    {
+      "path": "./apps/backend/clinical-service-e2e"
+    },
+    {
+      "path": "./apps/backend/clinical-service"
     }
   ],
   "ts-node": {

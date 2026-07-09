@@ -16,7 +16,7 @@ jobs:
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: 📦 Install dependencies
@@ -33,11 +33,16 @@ jobs:
           docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-auth:qa -f apps/backend/auth-service/Dockerfile .
           docker push ${{ secrets.DOCKER_USERNAME }}/careuce-auth:qa
 
-      # 🔥 NUEVO: Construir y subir el Triage Service
       - name: 🚀 Build and Push Triage Service
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-triage:qa -f apps/backend/triage-service/Dockerfile .
           docker push ${{ secrets.DOCKER_USERNAME }}/careuce-triage:qa
+
+      # 🔥 NUEVO: Construir y subir el Clinical Service
+      - name: 🚀 Build and Push Clinical Service
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-clinical:qa -f apps/backend/clinical-service/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/careuce-clinical:qa
 
   deploy:
     name: 🚀 Deploy to AWS QA
@@ -50,7 +55,6 @@ jobs:
       - name: 🔐 Configurar llave SSH Nativa
         run: |
           mkdir -p ~/.ssh
-          # Escribimos la llave respetando los saltos de línea exactos
           cat << 'KEYEOF' > ~/.ssh/aws_key.pem
           ${{ secrets.QA_SSH_PRIVATE_KEY }}
           KEYEOF
@@ -67,20 +71,16 @@ jobs:
 
           echo "🚀 Conectado exitosamente a la EC2 de AWS QA de forma nativa"
 
-          # 0. Instalar Docker Compose V2 para soportar imágenes modernas
           sudo apt-get update -y
           sudo apt-get install -y docker-compose-v2
 
-          # 1. Inyectar el archivo .env de forma segura
           cat << 'ENVEOF' > /home/ubuntu/.env
           ${{ secrets.QA_ENV_FILE_TEST }}
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
           ENVEOF
 
-          # 2. Login en Docker Hub
           echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-          # 3. LIMPIEZA PREVIA: Borrar contenedores apagados e imágenes viejas para liberar RAM/Disco
           cd /home/ubuntu
 
           echo "🛑 Apagando contenedores actuales para liberar sus imágenes..."
@@ -89,12 +89,11 @@ jobs:
           echo "🗑️ Borrando por completo imágenes y caché viejas..."
           sudo docker system prune -af --volumes
 
-          # 4. Levantar Infraestructura
+          echo "🔥 Levantando Nueva Infraestructura con Kafka y MongoDB..."
           cd /home/ubuntu
           sudo docker compose -f docker-compose.qa.yml pull
           sudo docker compose -f docker-compose.qa.yml up -d
 
-          # ⏳ Esperar a que Nginx esté completamente listo antes del reload
           echo "⏳ Esperando a que el contenedor de Nginx inicie por completo..."
           sleep 3
 
