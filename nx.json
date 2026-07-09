@@ -112,4 +112,10 @@
       "dependsOn": ["^build"]
     }
   }
+
+  {
+  "sync": {
+    "applyChanges": true
+  }
+}
 }
