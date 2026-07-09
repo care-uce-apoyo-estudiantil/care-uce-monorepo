@@ -5,6 +5,10 @@ WORKDIR /app
 # 1. Copiamos los archivos de configuración globales de la raíz
 COPY package*.json nx.json tsconfig.base.json ./
 
+# === AQUÍ EL TRUCO ===
+# Duplicamos el tsconfig.base.json como tsconfig.json en la raíz para calmar a Nx Sync
+RUN cp tsconfig.base.json tsconfig.json
+
 # 2. Copiamos TODAS las librerías compartidas (la carpeta packages completa)
 # Esto es vital para que las referencias a @org/shared-auth funcionen
 COPY packages/ ./packages/
