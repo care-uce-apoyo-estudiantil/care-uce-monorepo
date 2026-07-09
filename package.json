@@ -2,7 +2,9 @@
   "name": "@org/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "start:desktop": "concurrently \"nx serve care-uce-desktop\" \"wait-on http://localhost:4200 && electron apps/care-uce-desktop/main.js\""
+  },
   "private": true,
   "devDependencies": {
     "@eslint/js": "^9.8.0",
@@ -86,6 +88,8 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "expo": "~54.0.0",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.22.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",

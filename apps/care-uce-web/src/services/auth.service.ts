@@ -1,8 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
 
 // 🌍 GESTIÓN DE ENTORNOS (Descomenta el que vayas a usar)
-const API_BASE_URL = 'http://192.168.1.2:3000/api'; // Local
-//const API_BASE_URL = 'http://caruceqa.programacionwebuce.net/api'; // QA
+//const API_BASE_URL = 'http://192.168.1.2:3000/api'; // Local
+const API_BASE_URL = 'http://100.28.235.67/api'; // QA
 // const API_BASE_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
 
 export interface AuthResponse {
@@ -69,7 +69,7 @@ class AuthService {
   async register(
     email: string,
     password: string,
-    role: string = 'student',
+    role = 'student',
   ): Promise<AuthResponse> {
     try {
       const response = await this.api.post<AuthResponse>('/auth/register', {
@@ -82,10 +82,16 @@ class AuthService {
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw {
+          message: error.response?.data?.message || 'Error en registro',
+          status: error.response?.status || 500,
+        };
+      }
       throw {
-        message: error.response?.data?.message || 'Error en registro',
-        status: error.response?.status || 500,
+        message: 'Error inesperado del servidor',
+        status: 500,
       };
     }
   }
@@ -102,10 +108,16 @@ class AuthService {
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw {
+          message: error.response?.data?.message || 'Credenciales inválidas',
+          status: error.response?.status || 500,
+        };
+      }
       throw {
-        message: error.response?.data?.message || 'Credenciales inválidas',
-        status: error.response?.status || 500,
+        message: 'Error inesperado del servidor',
+        status: 500,
       };
     }
   }
@@ -115,14 +127,19 @@ class AuthService {
     try {
       const response = await this.api.get<{ user: User }>('/auth/profile');
       return response.data.user;
-    } catch (error: any) {
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw {
+          message: error.response?.data?.message || 'Error al obtener perfil',
+          status: error.response?.status || 500,
+        };
+      }
       throw {
-        message: error.response?.data?.message || 'Error al obtener perfil',
-        status: error.response?.status || 500,
+        message: 'Error inesperado del servidor',
+        status: 500,
       };
     }
   }
-
   // Logout
   async logout(): Promise<void> {
     try {
@@ -138,6 +155,7 @@ class AuthService {
     try {
       return localStorage.getItem('auth_token');
     } catch (error) {
+      console.error('Error al obtener token:', error);
       return null;
     }
   }
@@ -148,6 +166,7 @@ class AuthService {
       const user = localStorage.getItem('user');
       return user ? JSON.parse(user) : null;
     } catch (error) {
+      console.error('Error al obtener usuario:', error);
       return null;
     }
   }
