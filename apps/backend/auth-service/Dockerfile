@@ -2,7 +2,7 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 COPY . .
 # Construimos solo el microservicio auth-service usando Nx
 RUN npx nx build auth-service --prod

@@ -2,7 +2,7 @@
 FROM node:20-alpine As build
 WORKDIR /usr/src/app
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 COPY . .
 RUN npx nx build triage-service --prod
 
