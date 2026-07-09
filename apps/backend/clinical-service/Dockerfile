@@ -24,6 +24,6 @@ COPY package*.json ./
 RUN npm install --legacy-peer-deps && npm prune --production
 
 # Copiamos la compilación generada por Nx
-COPY --from=builder /app/dist/apps/backend/clinical-service ./dist
+COPY --from=builder /app/apps/backend/clinical-service/dist ./dist
 
 CMD ["node", "dist/main.js"]
