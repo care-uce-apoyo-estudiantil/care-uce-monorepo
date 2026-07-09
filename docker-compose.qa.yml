@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # 1. Contenedor de Base de Datos para Auth Service
+  # --- BASES DE DATOS RELACIONALES ---
   auth-db:
     image: postgres:15-alpine
     container_name: careuce-auth-db-qa
@@ -13,7 +13,6 @@ services:
     networks:
       - careuce-qa-network
 
-  # 🔥 NUEVO: Contenedor de Base de Datos para Triage Service
   triage-db:
     image: postgres:15-alpine
     container_name: careuce-triage-db-qa
@@ -25,7 +24,35 @@ services:
     networks:
       - careuce-qa-network
 
-  # 2. EL API GATEWAY (La nueva puerta de enlace)
+  # 🔥 NUEVO: BASE DE DATOS DOCUMENTAL
+  mongodb:
+    image: mongo:6.0
+    container_name: careuce-mongodb-qa
+    restart: always
+    ports:
+      - '27017:27017'
+    networks:
+      - careuce-qa-network
+
+  # 🔥 NUEVO: SISTEMA NERVIOSO (KAFKA EN MODO KRAFT)
+  kafka:
+    image: bitnami/kafka:3.4.0
+    container_name: careuce-kafka-qa
+    restart: always
+    ports:
+      - '9092:9092'
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_TOPICS_AUTOMATIC_CREATION_ENABLE=true
+    networks:
+      - careuce-qa-network
+
+  # --- EL API GATEWAY ---
   api-gateway:
     image: nginx:alpine
     container_name: careuce-api-gateway-qa
@@ -36,11 +63,11 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - auth-service
-      - triage-service # 🔥 Nginx ahora espera a ambos
+      - triage-service
     networks:
       - careuce-qa-network
 
-  # 3. Microservicio de Autenticación
+  # --- MICROSERVICIOS ---
   auth-service:
     image: ${DOCKER_USERNAME}/careuce-auth:qa
     container_name: careuce-auth-service-qa
@@ -52,13 +79,31 @@ services:
     networks:
       - careuce-qa-network
 
-  # 🔥 NUEVO: Microservicio de Triage
   triage-service:
     image: ${DOCKER_USERNAME}/careuce-triage:qa
     container_name: careuce-triage-service-qa
     restart: always
     depends_on:
       - triage-db
+      - kafka # 🔥 Triage ahora debe esperar a que Kafka despierte
+    environment:
+      - KAFKA_BROKER=kafka:9092 # Inyectamos la URL interna de Kafka
+    env_file:
+      - .env
+    networks:
+      - careuce-qa-network
+
+  # 🔥 NUEVO: MICROSERVICIO CONSUMIDOR
+  clinical-service:
+    image: ${DOCKER_USERNAME}/careuce-clinical:qa
+    container_name: careuce-clinical-service-qa
+    restart: always
+    depends_on:
+      - kafka
+      - mongodb
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - MONGO_URI=mongodb://mongodb:27017/clinical_db
     env_file:
       - .env
     networks:
