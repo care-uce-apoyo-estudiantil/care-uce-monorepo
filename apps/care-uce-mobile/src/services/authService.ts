@@ -2,16 +2,17 @@ import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 🌍 ENVIRONMENT MANAGEMENT (Uncomment the one you are going to use)
-//const API_BASE_URL = 'http://10.10.12.162:3000/api'; // Local (Your physical IP)
-const API_BASE_URL = 'http://100.28.235.67/api';
+const API_BASE_URL = 'http://192.168.1.4:3000/api'; // Local (Your physical IP)
+//const API_BASE_URL = 'http://100.28.235.67/api';
 // const API_BASE_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
-
 export interface AuthResponse {
   access_token: string;
   user: {
     id: string;
     email: string;
     role: string;
+    nombre: string;
+    cedula: string;
   };
 }
 
@@ -19,9 +20,12 @@ export interface User {
   id?: string;
   email: string;
   role?: string;
+  nombre?: string;
+  name?: string; // Alias inyectado para la UI
+  fullName?: string; // Alias inyectado para la UI
+  cedula?: string;
 }
 
-// Strictly type the registration payload to match the backend DTO
 export interface RegisterPayload {
   fullName: string;
   idCard: string;
@@ -39,11 +43,10 @@ class AuthService {
       timeout: 10000,
     });
 
-    // Request interceptor to attach the token
     this.api.interceptors.request.use(
       async (config) => {
         try {
-          const token = await AsyncStorage.getItem('auth_token'); // 📱 Mobile uses AsyncStorage
+          const token = await AsyncStorage.getItem('auth_token');
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
           }
@@ -55,12 +58,10 @@ class AuthService {
       (error) => Promise.reject(error),
     );
 
-    // Response interceptor for error handling (e.g., 401 Unauthorized)
     this.api.interceptors.response.use(
       (response) => response,
       async (error) => {
         if (error.response?.status === 401) {
-          // Token expired, clear storage
           await AsyncStorage.removeItem('auth_token');
           await AsyncStorage.removeItem('user');
         }
@@ -69,32 +70,37 @@ class AuthService {
     );
   }
 
-  // Register a new user
+  // 🔥 UTILIDAD: Enriquecemos el objeto para que la UI encuentre siempre el nombre
+  private enrichUser(userData: Partial<User>): User {
+    return {
+      ...userData,
+      name: userData.nombre,
+      fullName: userData.nombre,
+    } as User;
+  }
+
   async register(data: RegisterPayload): Promise<AuthResponse> {
     try {
-      // Send the complete DTO and specify the origin so backend assigns 'student' role
       const response = await this.api.post<AuthResponse>(
         '/auth/register',
         data,
-        {
-          headers: {
-            'x-client-origin': 'mobile',
-          },
-        },
+        { headers: { 'x-client-origin': 'mobile' } },
       );
 
-      // If the backend returns a token immediately upon registration, store it
       if (response.data.access_token) {
         await AsyncStorage.setItem('auth_token', response.data.access_token);
-        await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+        // Guardamos el usuario con los alias
+        await AsyncStorage.setItem(
+          'user',
+          JSON.stringify(this.enrichUser(response.data.user)),
+        );
       }
       return response.data;
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
-        // 🔥 THE FIX: Extract backend messages and convert Array to a single String
         const validationMessages = error.response?.data?.message;
         const formattedMessage = Array.isArray(validationMessages)
-          ? validationMessages.join('\n') // Joins array items with a line break
+          ? validationMessages.join('\n')
           : validationMessages || 'Registration error';
 
         throw {
@@ -102,26 +108,43 @@ class AuthService {
           status: error.response?.status || 500,
         };
       }
-      throw {
-        message: 'Unexpected server error',
-        status: 500,
-      };
+      throw { message: 'Unexpected server error', status: 500 };
     }
   }
 
-  // Login
   async login(email: string, password: string): Promise<AuthResponse> {
     try {
       const response = await this.api.post<AuthResponse>('/auth/login', {
         email,
         password,
       });
+
+      if (response.data.user.role !== 'student') {
+        throw {
+          message:
+            'Acceso Denegado: Esta aplicación móvil es de uso exclusivo para Estudiantes.',
+          status: 403,
+        };
+      }
+
       if (response.data.access_token) {
         await AsyncStorage.setItem('auth_token', response.data.access_token);
-        await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+        // Guardamos el usuario con los alias
+        await AsyncStorage.setItem(
+          'user',
+          JSON.stringify(this.enrichUser(response.data.user)),
+        );
       }
       return response.data;
     } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'status' in error &&
+        (error as { status?: number }).status === 403
+      )
+        throw error;
+
       if (axios.isAxiosError(error)) {
         const validationMessages = error.response?.data?.message;
         const formattedMessage = Array.isArray(validationMessages)
@@ -133,67 +156,37 @@ class AuthService {
           status: error.response?.status || 500,
         };
       }
-      throw {
-        message: 'Unexpected server error',
-        status: 500,
-      };
+      throw { message: 'Unexpected server error', status: 500 };
     }
   }
 
-  // Get user profile
   async getProfile(): Promise<User> {
     try {
       const response = await this.api.get<{ user: User }>('/auth/profile');
-      return response.data.user;
+      return this.enrichUser(response.data.user);
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         throw {
-          message: error.response?.data?.message || 'Error fetching profile',
+          message: error.response?.data?.message || 'Error',
           status: error.response?.status || 500,
         };
       }
-      throw {
-        message: 'Unexpected server error',
-        status: 500,
-      };
+      throw { message: 'Unexpected server error', status: 500 };
     }
   }
 
-  // Logout
   async logout(): Promise<void> {
-    try {
-      await AsyncStorage.removeItem('auth_token');
-      await AsyncStorage.removeItem('user');
-    } catch (error) {
-      console.error('Error during logout:', error);
-    }
+    await AsyncStorage.removeItem('auth_token');
+    await AsyncStorage.removeItem('user');
   }
 
-  // Get stored token
   async getToken(): Promise<string | null> {
-    try {
-      return await AsyncStorage.getItem('auth_token');
-    } catch (error: unknown) {
-      console.error('Error fetching token:', error);
-      return null;
-    }
+    return await AsyncStorage.getItem('auth_token');
   }
 
-  // Get stored user
   async getStoredUser(): Promise<User | null> {
-    try {
-      const user = await AsyncStorage.getItem('user');
-      return user ? JSON.parse(user) : null;
-    } catch (error: unknown) {
-      console.error('Error fetching user:', error);
-      return null;
-    }
-  }
-
-  // Validate active session
-  async isAuthenticated(): Promise<boolean> {
-    const token = await this.getToken();
-    return !!token;
+    const user = await AsyncStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
   }
 }
 

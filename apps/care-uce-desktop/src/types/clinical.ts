@@ -13,5 +13,15 @@ export interface PatientRecord {
   fechaAtencion?: string;
 }
 
+// Defines the structure for a scheduled clinical appointment
+export interface Appointment {
+  id: string;
+  patientName: string;
+  date: string;
+  time: string;
+  notes: string;
+  status: 'Scheduled' | 'Completed' | 'Cancelled';
+}
+
 // Defines the available views in the clinical dashboard
-export type DashboardView = 'triage' | 'records' | 'chat';
+export type DashboardView = 'triage' | 'records' | 'chat' | 'appointments';

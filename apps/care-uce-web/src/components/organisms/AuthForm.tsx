@@ -1,9 +1,10 @@
+// Location: apps/care-uce-web/src/components/organisms/AuthForm.tsx
 import { useState } from 'react';
 import { InputField } from '../atoms/InputField';
 import { Button } from '../atoms/Button';
 import { OAuthButtons } from '../molecules/OAuthButtons';
 
-// 1. Define the interface to strictly type the form data and eliminate 'any'
+// 1. Interfaz estricta mapeada a las exigencias del Backend (DTO)
 export interface AuthFormData {
   email: string;
   password: string;
@@ -15,7 +16,6 @@ export interface AuthFormData {
 interface AuthFormProps {
   type: 'login' | 'register';
   onToggleType: () => void;
-  // 2. Replace 'any' with our new interface
   onSubmit: (formData: AuthFormData) => void;
   isLoading?: boolean;
   error?: string;
@@ -28,7 +28,6 @@ export const AuthForm = ({
   isLoading,
   error,
 }: AuthFormProps) => {
-  // 3. Map state variables exactly to match the backend DTO requirements
   const [formData, setFormData] = useState<AuthFormData>({
     fullName: '',
     idCard: '',
@@ -38,15 +37,29 @@ export const AuthForm = ({
   });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault(); // Prevent page reload
-    onSubmit(formData); // Send structured data to the parent page
+    e.preventDefault();
+
+    // Validación de contraseñas directo en el formulario antes de mandar al backend
+    if (type === 'register' && formData.password !== formData.confirmPassword) {
+      alert('Las contraseñas no coinciden. Por favor verifica.');
+      return;
+    }
+
+    onSubmit(formData);
   };
 
   return (
     <div className="w-full p-8 bg-white rounded-3xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-gray-100">
       <h2 className="text-2xl font-bold mb-6 text-[#003366]">
-        {type === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}
+        {type === 'login'
+          ? 'Acceso Administrativo'
+          : 'Crear Cuenta Administrador'}
       </h2>
+      <p className="text-slate-500 mb-6 text-sm">
+        {type === 'login'
+          ? 'Portal exclusivo para personal autorizado CareUCE.'
+          : 'Complete sus datos institucionales.'}
+      </p>
 
       {/* Attach handleSubmit to the form */}
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -63,7 +76,11 @@ export const AuthForm = ({
               label="Cédula"
               type="text"
               onChange={(e) =>
-                setFormData({ ...formData, idCard: e.target.value })
+                // Evitamos letras en la cédula desde el UI
+                setFormData({
+                  ...formData,
+                  idCard: e.target.value.replace(/[^0-9]/g, ''),
+                })
               }
             />
           </>
@@ -83,7 +100,7 @@ export const AuthForm = ({
           }
         />
 
-        {/* 4. Add the Confirm Password input for registration */}
+        {/* Campo Confirmar Contraseña para el Registro */}
         {type === 'register' && (
           <InputField
             label="Confirmar Contraseña"
@@ -96,22 +113,24 @@ export const AuthForm = ({
 
         {/* Display error message if it exists */}
         {error && (
-          <div className="text-red-500 text-sm font-semibold text-center animate-pulse">
+          <div className="p-3 bg-red-50 border-l-4 border-red-500 text-red-600 text-sm font-semibold animate-pulse rounded-r-md">
             {error}
           </div>
         )}
 
         {/* Submit button container */}
         <div className="mt-4">
+          {/* Ojo: Asumimos que tu <Button> hace "submit" si está dentro de un <form>.
+              Si tu <Button> de átomos es type="button" por defecto, cámbialo a type="submit" en el átomo. */}
           <Button
             label={
               isLoading
                 ? 'Procesando...'
                 : type === 'login'
                   ? 'Entrar'
-                  : 'Registrarse'
+                  : 'Registrar Administrador'
             }
-            className={`w-full ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            className={`w-full py-3 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
           />
         </div>
       </form>
@@ -120,12 +139,14 @@ export const AuthForm = ({
 
       <div className="mt-6 text-center text-sm">
         <span className="text-gray-600">
-          {type === 'login' ? '¿No tienes cuenta? ' : '¿Ya tienes cuenta? '}
+          {type === 'login'
+            ? '¿No tienes cuenta? '
+            : '¿Ya tienes cuenta aprobada? '}
         </span>
         <button
           onClick={onToggleType}
           type="button"
-          className="text-[#003366] font-bold hover:underline"
+          className="text-[#003366] font-bold hover:underline ml-1"
         >
           {type === 'login' ? 'Regístrate aquí' : 'Inicia Sesión'}
         </button>

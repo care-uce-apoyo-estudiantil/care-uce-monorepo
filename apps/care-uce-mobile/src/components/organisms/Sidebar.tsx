@@ -61,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
             <View style={styles.profileSection}>
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarInitials}>
-                  {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
+                  {user?.nombre ? user.nombre.charAt(0).toUpperCase() : 'U'}
                 </Text>
               </View>
               <View style={{ flex: 1 }}>

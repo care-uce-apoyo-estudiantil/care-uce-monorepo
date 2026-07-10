@@ -13,7 +13,7 @@ function createWindow() {
   });
 
   // Conectamos con el servidor de desarrollo de Vite (Nx) en el puerto 4200
-  win.loadURL('http://localhost:4200');
+  win.loadURL('http://localhost:4300');
 
   // Abre la consola de desarrollo automáticamente (útil para depurar el PDF)
   win.webContents.openDevTools();

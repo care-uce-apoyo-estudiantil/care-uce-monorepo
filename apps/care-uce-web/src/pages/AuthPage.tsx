@@ -1,3 +1,4 @@
+// Location: apps/care-uce-web/src/pages/AuthPage.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth.service';
@@ -9,7 +10,7 @@ export const AuthPage: React.FC = () => {
 
   // Loading and error states
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string>('');
 
   const navigate = useNavigate();
 
@@ -19,31 +20,31 @@ export const AuthPage: React.FC = () => {
     setError(''); // Clear errors when switching views
   };
 
-  // Function that receives structured data from AuthForm and calls the backend
-  // Replaced 'any' with 'AuthFormData'
+  // 1. Tipamos estrictamente el formData y quitamos el 'any'
   const handleAuthSubmit = async (formData: AuthFormData) => {
     setIsLoading(true);
-    setError('');
+    setError(''); // 2. Usamos '' en lugar de null para respetar el tipado
 
     try {
+      // 3. Corregimos 'type' por 'formType' (el nombre de tu variable de estado)
       if (formType === 'login') {
+        // En el login solo mandamos email y password
         await authService.login(formData.email, formData.password);
+        navigate('/dashboard');
       } else {
-        // Send the entire formData object directly to the service
-        // Do not pass the role manually, the backend handles it via headers
+        // En el registro mandamos el formData completo
         await authService.register(formData);
+        alert('Administrador registrado con éxito. Inicie sesión.');
+        // 4. Corregimos 'setType' por 'setFormType'
+        setFormType('login');
       }
-
-      // If successful, redirect to dashboard
-      navigate('/dashboard');
     } catch (err: unknown) {
-      // Replaced 'any' with 'unknown' for strict typing
+      // 5. Eliminamos el 'err: any' usando unknown y verificando si es una instancia de Error
       if (err instanceof Error) {
-        setError(err.message || 'Server connection error.');
+        setError(err.message);
       } else {
-        setError('An unexpected error occurred.');
+        setError('Error de autenticación inesperado');
       }
-      console.error(err);
     } finally {
       setIsLoading(false);
     }

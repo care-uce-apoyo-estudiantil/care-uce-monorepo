@@ -24,13 +24,11 @@ export const useAuth = (): UseAuthReturn => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const isAuth = await authService.isAuthenticated();
+        // authService may not expose isAuthenticated; derive auth status from stored user
+        const storedUser = await authService.getStoredUser();
+        const isAuth = !!storedUser;
         setIsAuthenticated(isAuth);
-
-        if (isAuth) {
-          const storedUser = await authService.getStoredUser();
-          setUser(storedUser);
-        }
+        if (isAuth) setUser(storedUser);
       } catch (err: unknown) {
         // ESLint fix: replaced any with unknown
         console.error('Error checking auth status:', err);

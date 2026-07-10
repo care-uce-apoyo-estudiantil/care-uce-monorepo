@@ -1,9 +1,18 @@
-import React, { useRef, useState } from 'react';
-import { ArrowLeft, Download, FileText, User, Loader2 } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import { toPng } from 'html-to-image';
+// Location: apps/care-uce-desktop/src/app/ExpedienteClinico.tsx
+import React, { useState } from 'react';
+import {
+  ArrowLeft,
+  Save,
+  User,
+  Clock,
+  AlertTriangle,
+  FileText,
+  CheckCircle,
+  Activity,
+} from 'lucide-react';
+import triageService from '../services/triage.service';
 
-export interface Paciente {
+interface PacienteProps {
   id: string;
   paciente: string;
   edad: number;
@@ -13,187 +22,127 @@ export interface Paciente {
   tiempoEspera: string;
 }
 
-interface ExpedienteProps {
-  paciente: Paciente;
+interface Props {
+  paciente: PacienteProps;
   onVolver: () => void;
 }
 
-export const ExpedienteClinico: React.FC<ExpedienteProps> = ({
-  paciente,
-  onVolver,
-}) => {
-  const printRef = useRef<HTMLDivElement>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+export const ExpedienteClinico: React.FC<Props> = ({ paciente, onVolver }) => {
+  const [notas, setNotas] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const limpiarNombre = (str: string) =>
-    str
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/\s+/g, '_');
-
-  const handleExportPDF = async () => {
-    const element = printRef.current;
-    if (!element) return;
-
+  const handleFinalizarAtencion = async () => {
+    if (!notas.trim()) {
+      alert('Por favor, ingresa las notas clínicas antes de finalizar.');
+      return;
+    }
+    setIsSaving(true);
     try {
-      setIsGenerating(true);
-
-      // 1. Tomamos la "foto" usando el motor nativo de Chromium
-      const dataUrl = await toPng(element, {
-        pixelRatio: 2, // Alta definición
-        backgroundColor: '#ffffff', // Fondo blanco para evitar fondos transparentes/negros
-      });
-
-      // 2. Preparamos el documento PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-
-      // 3. Calculamos la altura matemáticamente perfecta para que no se deforme
-      const imgProps = pdf.getImageProperties(dataUrl);
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-      // 4. Inyectamos la imagen y descargamos
-      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(
-        `Expediente_${paciente.id}_${limpiarNombre(paciente.paciente)}.pdf`,
-      );
-    } catch (error) {
-      console.error('Error al generar el PDF:', error);
-      alert('No se pudo descargar el PDF. Revisa la consola.');
-    } finally {
-      setIsGenerating(false);
+      // Mandamos la orden al backend para resolver el caso de emergencia
+      await triageService.resolveCase(paciente.id, notas);
+      // Al volver al Dashboard, se refrescará y el paciente ya no estará en la cola
+      onVolver();
+    } catch {
+      alert('Error al guardar el expediente.');
+      setIsSaving(false);
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-50">
-      <header className="h-16 bg-white shadow-sm flex items-center justify-between px-8 border-b shrink-0">
+    <div className="flex flex-col h-full bg-slate-50">
+      <header className="bg-white px-8 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-4">
           <button
             onClick={onVolver}
-            className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
-            disabled={isGenerating}
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={24} />
           </button>
-          <h2 className="text-lg font-bold text-slate-800">
-            Expediente Clínico: {paciente.id}
-          </h2>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">
+              Atención de Crisis (Triage)
+            </h2>
+            <p className="text-sm text-slate-500 font-mono">
+              ID: {paciente.id.substring(0, 12)}...
+            </p>
+          </div>
         </div>
-
         <button
-          onClick={handleExportPDF}
-          disabled={isGenerating}
-          className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white px-4 py-2 rounded-lg font-bold shadow-sm transition-colors text-sm"
+          onClick={handleFinalizarAtencion}
+          disabled={isSaving}
+          className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold text-white shadow-sm transition-colors ${isSaving ? 'bg-slate-400' : 'bg-teal-600 hover:bg-teal-700'}`}
         >
-          {isGenerating ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Generando...
-            </>
+          {isSaving ? (
+            <Activity className="animate-spin" size={20} />
           ) : (
-            <>
-              <Download size={16} />
-              Exportar a PDF
-            </>
+            <Save size={20} />
           )}
+          {isSaving ? 'Guardando...' : 'Finalizar y Guardar'}
         </button>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-8 flex justify-center">
-        <div
-          ref={printRef}
-          className="bg-white w-full max-w-4xl p-12 shadow-md border border-slate-200"
-          style={{ minHeight: '1056px' }}
-        >
-          <div className="border-b-2 border-slate-800 pb-6 mb-8 flex justify-between items-end">
-            <div>
-              <h1 className="text-2xl font-black text-slate-900 uppercase tracking-wider">
-                Universidad Central del Ecuador
-              </h1>
-              <p className="text-slate-600 font-medium">
-                Dirección de Bienestar Estudiantil (CareUCE)
-              </p>
-              <p className="text-slate-500 text-sm mt-1">
-                Informe de Atención Psicológica / Trabajo Social
-              </p>
+      <div className="p-8 max-w-6xl mx-auto w-full grid grid-cols-3 gap-8 overflow-y-auto">
+        {/* Lado Izquierdo: Info del Paciente */}
+        <div className="col-span-1 space-y-6">
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <div className="w-16 h-16 bg-teal-100 text-teal-700 rounded-full flex items-center justify-center text-2xl font-bold mb-4 uppercase">
+              {paciente.paciente.charAt(0)}
             </div>
-            <div className="text-right">
-              <p className="text-sm font-bold text-slate-700">
-                Fecha: {new Date().toLocaleDateString('es-ES')}
-              </p>
-              <p className="text-sm text-slate-500 font-mono mt-1">
-                Ref: {paciente.id}
-              </p>
+            <h3 className="text-xl font-bold text-slate-800 capitalize">
+              {paciente.paciente}
+            </h3>
+            <p className="text-slate-500 mb-6">{paciente.carrera}</p>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 text-sm">
+                <User size={18} className="text-slate-400" />
+                <span className="text-slate-700 font-medium">
+                  {paciente.edad} años
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <Clock size={18} className="text-slate-400" />
+                <span className="text-slate-700 font-medium">
+                  Prioridad:{' '}
+                  <span className="text-red-600 font-bold">
+                    {paciente.prioridad}
+                  </span>
+                </span>
+              </div>
+              <div className="flex items-start gap-3 text-sm bg-red-50 p-3 rounded-lg border border-red-100">
+                <AlertTriangle
+                  size={18}
+                  className="text-red-500 shrink-0 mt-0.5"
+                />
+                <span className="text-red-700 font-medium leading-relaxed">
+                  Motivo: {paciente.motivo}
+                </span>
+              </div>
             </div>
           </div>
+        </div>
 
-          <section className="mb-8">
-            <h3 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4 flex items-center gap-2">
-              <User size={18} className="text-teal-600" /> Datos de Filiación
-            </h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <p>
-                <span className="font-semibold text-slate-600">Paciente:</span>{' '}
-                {paciente.paciente}
-              </p>
-              <p>
-                <span className="font-semibold text-slate-600">Edad:</span>{' '}
-                {paciente.edad} años
-              </p>
-              <p>
-                <span className="font-semibold text-slate-600">Carrera:</span>{' '}
-                {paciente.carrera}
-              </p>
-              <p>
-                <span className="font-semibold text-slate-600">
-                  Estado de Triage:
-                </span>{' '}
-                <span className="text-red-600 font-bold">
-                  {paciente.prioridad}
-                </span>
-              </p>
-            </div>
-          </section>
-
-          <section className="mb-8">
-            <h3 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4 flex items-center gap-2">
-              <FileText size={18} className="text-teal-600" /> Sintomatología
-              Detectada
-            </h3>
-            <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded border border-slate-200">
-              {paciente.motivo}
-            </p>
-          </section>
-
-          <section className="mb-8">
-            <h3 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4 flex items-center gap-2">
-              <FileText size={18} className="text-teal-600" /> Notas Clínicas de
-              Evolución
+        {/* Lado Derecho: Formulario Clínico */}
+        <div className="col-span-2">
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-full flex flex-col">
+            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+              <FileText size={20} className="text-teal-600" /> Notas de
+              Evolución / Contención
             </h3>
             <textarea
-              className="w-full p-4 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none min-h-[150px] bg-slate-50/30"
-              placeholder="Describa el estado de salud mental, afectividad y nivel de riesgo actual..."
-              defaultValue="El estudiante se presenta a la sesión con predisposición al diálogo. Manifiesta indicadores de ansiedad asociados a la carga evaluativa del periodo actual. Se aplican técnicas de contención y reestructuración cognitiva."
+              value={notas}
+              onChange={(e) => setNotas(e.target.value)}
+              placeholder="Redacte aquí la evaluación psicológica, estado mental del paciente, acciones tomadas para la contención emocional y las recomendaciones de seguimiento..."
+              className="w-full flex-1 min-h-[350px] p-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none resize-none text-slate-700 leading-relaxed text-base"
             ></textarea>
-          </section>
-
-          <div className="mt-32 pt-8 border-t border-slate-300 flex justify-around">
-            <div className="text-center w-64">
-              <div className="border-b border-slate-400 h-10 mb-2"></div>
-              <p className="text-sm font-bold text-slate-800">
-                Dr. Roberto Sánchez
+            <div className="mt-6 bg-blue-50 text-blue-800 p-4 rounded-lg flex items-start gap-3 text-sm border border-blue-100">
+              <CheckCircle size={20} className="shrink-0 text-blue-600" />
+              <p>
+                Al hacer clic en "Finalizar y Guardar", este caso se marcará
+                como <strong>Resuelto</strong> en la base de datos y saldrá de
+                la bandeja de emergencias activas. Asegúrese de que el
+                estudiante se encuentre estabilizado.
               </p>
-              <p className="text-xs text-slate-500">
-                Psicólogo Clínico - Reg. MSP
-              </p>
-            </div>
-            <div className="text-center w-64">
-              <div className="border-b border-slate-400 h-10 mb-2"></div>
-              <p className="text-sm font-bold text-slate-800">
-                Firma del Estudiante
-              </p>
-              <p className="text-xs text-slate-500">Consentimiento Informado</p>
             </div>
           </div>
         </div>

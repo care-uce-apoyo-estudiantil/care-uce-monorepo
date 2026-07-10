@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "start:desktop": "concurrently \"nx serve care-uce-desktop\" \"wait-on http://localhost:4200 && electron apps/care-uce-desktop/main.js\""
+    "start:desktop": "concurrently \"nx serve care-uce-desktop\" \"wait-on http://localhost:4300 && electron apps/care-uce-desktop/main.js\""
   },
   "private": true,
   "devDependencies": {

@@ -1,23 +1,18 @@
+// Location: apps/backend/auth-service/src/app/auth/auth.controller.ts
 import {
   Controller,
   Post,
   Body,
+  Headers,
   HttpCode,
   HttpStatus,
   Get,
-  UseGuards,
-  Request,
-  Headers,
+  Patch,
+  Param,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './jwt-auth.guard';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-
-// Define expected interface to avoid 'any' in Express requests
-interface RequestWithUser extends Request {
-  user: { userId: string; email: string; role: string };
-}
 
 @Controller('auth')
 export class AuthController {
@@ -26,25 +21,31 @@ export class AuthController {
   @Post('register')
   async register(
     @Body() registerDto: RegisterDto,
-    @Headers('x-client-origin') clientOrigin: string,
-  ) {
-    // Determine the origin safely, default to mobile if not sent
-    const origin = clientOrigin ? clientOrigin.toLowerCase() : 'mobile';
-    return this.authService.register(registerDto, origin);
+    @Headers('x-client-origin') origin: string,
+  ): Promise<unknown> {
+    // Si no viene el header, le ponemos 'unknown' por defecto
+    return this.authService.register(registerDto, origin || 'unknown');
   }
 
-  @HttpCode(HttpStatus.OK) // Login should return 200 OK
+  @HttpCode(HttpStatus.OK)
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto): Promise<unknown> {
+    // Le pasamos el DTO completo al servicio
     return this.authService.login(loginDto);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('profile')
-  getProfile(@Request() req: RequestWithUser) {
-    return {
-      message: 'Access granted to protected route!',
-      user: req.user,
-    };
+  // 👇 NUEVOS ENDPOINTS PARA EL PANEL ADMINISTRATIVO WEB 👇
+
+  @Get('users')
+  async getAllUsers(): Promise<unknown> {
+    return this.authService.getAllUsers();
+  }
+
+  @Patch('users/:id/role')
+  async updateRole(
+    @Param('id') id: string,
+    @Body('role') role: string,
+  ): Promise<unknown> {
+    return this.authService.updateRole(id, role);
   }
 }

@@ -1,208 +1,139 @@
-import React, { useState } from 'react';
+// Location: apps/care-uce-mobile/src/app/(tabs)/appointments.tsx
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
+  SafeAreaView,
   Alert,
 } from 'react-native';
-import {
-  Stethoscope,
-  HeartHandshake,
-  BrainCircuit,
-  CalendarDays,
-  PlusCircle,
-} from 'lucide-react-native';
+import { Clock, UserCheck, ChevronRight } from 'lucide-react-native';
 
-// Tema Global
-import { Colors, Spacing, Typography } from '../../constants/Theme';
-
-// Moléculas
-import { DepartmentCard } from '../../components/molecules/DepartmentCard';
-import { AppointmentCard } from '../../components/molecules/AppointmentCard';
-import { EmptyState } from '../../components/molecules/EmptyState';
-
-// 👇 1. Creamos la interfaz (El molde de los datos)
-interface Appointment {
-  id: string;
-  type: string;
-  professional: string;
-  date: string;
-  time: string;
-  status: string;
-}
+const DOCTORS = [
+  {
+    id: 1,
+    name: 'Dra. Ana López',
+    role: 'Psicóloga Clínica',
+    available: 'Hoy, 14:00',
+    bgColor: '#E8F0FE',
+    iconColor: '#1976D2',
+  },
+  {
+    id: 2,
+    name: 'Dr. Carlos Mendoza',
+    role: 'Terapeuta Cognitivo',
+    available: 'Mañana, 09:00',
+    bgColor: '#FCE4EC',
+    iconColor: '#C2185B',
+  },
+  {
+    id: 3,
+    name: 'Dra. María Paz',
+    role: 'Orientadora Vocacional',
+    available: 'Viernes, 11:30',
+    bgColor: '#E8F5E9',
+    iconColor: '#388E3C',
+  },
+];
 
 export default function AppointmentsScreen() {
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'new'>('upcoming');
-
-  // 👇 2. Le decimos a TypeScript que este arreglo es de tipo Appointment[]
-  const upcomingAppointments: Appointment[] = [];
-
-  const departments = [
-    {
-      id: '1',
-      title: 'Psicología Clínica',
-      description: 'Apoyo emocional y terapia individual.',
-      icon: Stethoscope,
-      color: Colors.primary,
-      bg: Colors.primaryLight,
-    },
-    {
-      id: '2',
-      title: 'Trabajo Social',
-      description: 'Asesoría socioeconómica y vulnerabilidad.',
-      icon: HeartHandshake,
-      color: Colors.success,
-      bg: Colors.successLight,
-    },
-    {
-      id: '3',
-      title: 'Psicopedagogía',
-      description: 'Orientación en técnicas de estudio.',
-      icon: BrainCircuit,
-      color: Colors.warning,
-      bg: Colors.warningLight,
-    },
-  ];
+  const handleBook = (doctorName: string) => {
+    Alert.alert(
+      'Agendar Sesión',
+      `¿Deseas solicitar una cita con ${doctorName}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Confirmar',
+          onPress: () =>
+            Alert.alert(
+              '¡Éxito!',
+              'Tu solicitud ha sido enviada al departamento de bienestar estudiantil.',
+            ),
+        },
+      ],
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Selector de Pestañas */}
-      <View style={styles.tabSelector}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'upcoming' && styles.activeTab]}
-          onPress={() => setActiveTab('upcoming')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'upcoming' && styles.activeTabText,
-            ]}
-          >
-            Próximas Citas
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Agendar Cita</Text>
+          <Text style={styles.subtitle}>
+            Selecciona un especialista disponible en el departamento de
+            Bienestar Universitario.
           </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'new' && styles.activeTab]}
-          onPress={() => setActiveTab('new')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'new' && styles.activeTabText,
-            ]}
-          >
-            Agendar Nueva
-          </Text>
-        </TouchableOpacity>
-      </View>
+        </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* VISTA 1: PRÓXIMAS CITAS */}
-        {activeTab === 'upcoming' && (
-          <View>
-            {upcomingAppointments.length > 0 ? (
-              upcomingAppointments.map((appt) => (
-                <AppointmentCard
-                  key={appt.id}
-                  type={appt.type}
-                  professional={appt.professional}
-                  date={appt.date}
-                  time={appt.time}
-                  status={appt.status}
-                  onModifyPress={() =>
-                    Alert.alert('Modificar', 'Próximamente...')
-                  }
-                />
-              ))
-            ) : (
-              <EmptyState
-                icon={<CalendarDays color={Colors.border} size={64} />}
-                title="No tienes citas próximas"
-                description="Si necesitas hablar con un profesional, puedes agendar una nueva cita en el sistema."
-                actionText="Agendar Cita"
-                actionIcon={<PlusCircle color={Colors.primaryText} size={20} />}
-                onActionPress={() => setActiveTab('new')}
-              />
-            )}
-          </View>
-        )}
-
-        {/* VISTA 2: AGENDAR NUEVA */}
-        {activeTab === 'new' && (
-          <View>
-            <Text style={styles.sectionSubtitle}>
-              ¿Con qué departamento necesitas hablar?
-            </Text>
-
-            {departments.map((dept) => {
-              const Icon = dept.icon;
-              return (
-                <DepartmentCard
-                  key={dept.id}
-                  title={dept.title}
-                  description={dept.description}
-                  iconBgColor={dept.bg}
-                  icon={<Icon color={dept.color} size={28} />}
-                  onPress={() =>
-                    Alert.alert('Selección', `Has elegido ${dept.title}`)
-                  }
-                />
-              );
-            })}
-
-            <View style={styles.infoBox}>
-              <Text style={styles.infoBoxText}>
-                Toda la información compartida es confidencial y está protegida
-                por el secreto profesional de la UCE.
-              </Text>
-            </View>
-          </View>
-        )}
+        <View style={styles.listContainer}>
+          {DOCTORS.map((doc) => (
+            <TouchableOpacity
+              key={doc.id}
+              style={styles.card}
+              activeOpacity={0.7}
+              onPress={() => handleBook(doc.name)}
+            >
+              <View style={styles.cardContent}>
+                <View style={[styles.avatar, { backgroundColor: doc.bgColor }]}>
+                  <UserCheck color={doc.iconColor} size={24} />
+                </View>
+                <View style={styles.info}>
+                  <Text style={styles.docName}>{doc.name}</Text>
+                  <Text style={styles.docRole}>{doc.role}</Text>
+                  <View style={styles.availability}>
+                    <Clock color="#666" size={14} />
+                    <Text style={styles.timeText}>Libre: {doc.available}</Text>
+                  </View>
+                </View>
+                <ChevronRight color="#CCC" size={24} />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  tabSelector: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+  safeArea: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: { padding: 20, paddingTop: 30 },
+  header: { marginBottom: 24 },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#003366',
+    marginBottom: 8,
   },
-  tab: {
-    flex: 1,
-    paddingVertical: Spacing.md,
+  subtitle: { fontSize: 15, color: '#666', lineHeight: 22 },
+  listContainer: { gap: 16 },
+  card: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardContent: { flexDirection: 'row', alignItems: 'center' },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    marginRight: 16,
   },
-  activeTab: { borderBottomColor: Colors.primary },
-  tabText: {
-    ...Typography.subtitle,
-    color: Colors.textTertiary,
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  activeTabText: { color: Colors.primary },
-  scroll: { padding: Spacing.lg },
-  sectionSubtitle: { ...Typography.h2, marginBottom: Spacing.md },
-  infoBox: {
-    backgroundColor: Colors.primaryLight,
-    padding: Spacing.md,
-    borderRadius: 12,
-    marginTop: Spacing.sm,
-  },
-  infoBoxText: {
-    ...Typography.caption,
-    color: Colors.primary,
-    textAlign: 'center',
-  },
+  info: { flex: 1 },
+  docName: { fontSize: 17, fontWeight: 'bold', color: '#333', marginBottom: 4 },
+  docRole: { fontSize: 14, color: '#666', marginBottom: 8 },
+  availability: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  timeText: { fontSize: 13, color: '#666', fontWeight: '500' },
 });

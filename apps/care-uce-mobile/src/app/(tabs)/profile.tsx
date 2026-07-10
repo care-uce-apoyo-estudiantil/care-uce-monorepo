@@ -1,3 +1,4 @@
+// Location: apps/care-uce-mobile/src/app/(tabs)/profile.tsx
 import React from 'react';
 import {
   View,
@@ -5,8 +6,9 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
-import { User, LogOut, Settings, ShieldCheck } from 'lucide-react-native';
+import { LogOut, Settings, ShieldCheck } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -15,12 +17,30 @@ export default function ProfileScreen() {
   const { user, logout } = useAuth(); // Consumimos el estado y método global
 
   const handleLogout = async () => {
-    try {
-      await logout(); // Destruye el token del AsyncStorage
-      router.replace('/'); // Redirección limpia al Login
-    } catch (error) {
-      console.error('Error al cerrar sesión desde perfil:', error);
-    }
+    Alert.alert('Cerrar Sesión', '¿Estás seguro de que deseas salir?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Salir',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await logout(); // Destruye el token del AsyncStorage
+            router.replace('/'); // Redirección limpia al Login
+          } catch (error) {
+            console.error('Error al cerrar sesión desde perfil:', error);
+          }
+        },
+      },
+    ]);
+  };
+
+  // 🔥 Smart display name resolver to always show a friendly name
+  const getDisplayName = () => {
+    if (user?.nombre) return user.nombre;
+    if (user?.name) return user.name;
+    if (user?.fullName) return user.fullName;
+    // Fallback: If no name exists, use 'Estudiante' in the profile avatar
+    return 'Estudiante';
   };
 
   return (
@@ -28,8 +48,13 @@ export default function ProfileScreen() {
       {/* Tarjeta de Información de Usuario */}
       <View style={styles.profileCard}>
         <View style={styles.avatarContainer}>
-          <User color="#003366" size={40} />
+          <Text style={styles.avatarText}>
+            {getDisplayName().charAt(0).toUpperCase()}
+          </Text>
         </View>
+        <Text style={styles.name} numberOfLines={1}>
+          {getDisplayName()}
+        </Text>
         <Text style={styles.email} numberOfLines={1}>
           {user?.email || 'estudiante@uce.edu.ec'}
         </Text>
@@ -90,16 +115,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  email: {
-    fontSize: 16,
+  avatarText: {
+    fontSize: 32,
     fontWeight: 'bold',
+    color: '#003366',
+  },
+  name: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+    textTransform: 'capitalize',
+  },
+  email: {
+    fontSize: 14,
     color: '#003366',
     paddingHorizontal: 10,
   },
   role: {
     fontSize: 14,
     color: '#666',
-    marginTop: 4,
+    marginTop: 8,
+    fontWeight: '500',
   },
   menu: {
     backgroundColor: '#FFF',
