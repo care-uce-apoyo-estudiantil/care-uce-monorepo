@@ -39,6 +39,7 @@
     "@types/react-dom": "^19.1.11",
     "@vitejs/plugin-react": "^5.0.0",
     "@vitest/ui": "~4.1.0",
+    "assemblyscript": "^0.28.19",
     "autoprefixer": "^10.5.2",
     "concurrently": "^10.0.3",
     "electron": "^42.5.0",
@@ -73,6 +74,7 @@
     "care-uce-desktop"
   ],
   "dependencies": {
+    "@assemblyscript/loader": "^0.28.19",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.0",
@@ -83,6 +85,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/typeorm": "^11.0.1",
+    "@nx/storybook": "22.7.5",
     "axios": "^1.6.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
