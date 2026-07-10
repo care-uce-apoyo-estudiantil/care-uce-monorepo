@@ -2,8 +2,7 @@
 import axios from 'axios';
 import { PatientRecord } from '../types/clinical';
 
-const TRIAGE_API_URL =
-  import.meta.env.VITE_TRIAGE_API_URL || 'http://localhost:3001/api';
+const TRIAGE_API_URL = `${import.meta.env.VITE_BASE_IP}:3001/api`;
 
 class TriageService {
   async getActiveCases(): Promise<PatientRecord[]> {

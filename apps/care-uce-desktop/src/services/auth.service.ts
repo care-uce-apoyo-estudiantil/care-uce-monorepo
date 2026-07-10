@@ -2,9 +2,10 @@
 import axios from 'axios';
 
 // 🌍 ENVIRONMENT MANAGEMENT (Uncomment the one you are going to use)
-const API_URL = 'http://192.168.1.4:3000/api'; // Local (Your physical IP)
-//const API_BASE_URL = 'http://100.28.235.67/api';
-// const API_BASE_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
+// 🌍 La auth corre en el puerto 3000
+const AUTH_API_URL = `${import.meta.env.VITE_BASE_IP}:3000/api`; // Local (Your physical IP)
+//const AUTH_API_URL = 'http://100.28.235.67/api';
+// const AUTH_API_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
 
 class AuthService {
   async login(
@@ -12,7 +13,7 @@ class AuthService {
     password: string,
   ): Promise<Record<string, unknown>> {
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, {
+      const response = await axios.post(`${AUTH_API_URL}/auth/login`, {
         email,
         password,
       });
@@ -57,9 +58,13 @@ class AuthService {
         confirmPassword: password, // Lo mandamos doble para cumplir con el DTO
       };
 
-      const response = await axios.post(`${API_URL}/auth/register`, payload, {
-        headers: { 'x-client-origin': 'desktop' }, // Esto le dice al backend que es un Doctor
-      });
+      const response = await axios.post(
+        `${AUTH_API_URL}/auth/register`,
+        payload,
+        {
+          headers: { 'x-client-origin': 'desktop' }, // Esto le dice al backend que es un Doctor
+        },
+      );
 
       if (response.data.access_token) {
         localStorage.setItem('auth_token', response.data.access_token);

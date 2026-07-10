@@ -48,4 +48,11 @@ export class AuthController {
   ): Promise<unknown> {
     return this.authService.updateRole(id, role);
   }
+
+  @Get('doctors')
+  async getDoctors(): Promise<unknown> {
+    const allUsers = await this.authService.getAllUsers();
+    // Filtramos para devolver solo a los que tienen rol de doctor
+    return allUsers.filter((user) => user.role === 'doctor');
+  }
 }

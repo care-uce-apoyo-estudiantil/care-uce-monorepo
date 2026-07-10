@@ -14,8 +14,7 @@ type RegisterFormData = {
 //const API_URL = import.meta.env.VITE_API_URL || 'http://100.28.235.67/api';
 //const API_URL = import.meta.env.VITE_API_URL || 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://192.168.1.4:3000/api';
-
+const API_URL = `${import.meta.env.VITE_BASE_IP}:3000/api`;
 class AuthService {
   async login(
     email: string,

@@ -2,10 +2,12 @@
 import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+declare const process: { env: { EXPO_PUBLIC_API_URL?: string } } | undefined;
+
 // Note: Triage service runs on port 3001 locally.
 // Replace IP with your actual physical IP (e.g., 10.10.12.162)
 //const TRIAGE_API_URL = 'http://100.28.235.67:3001/api';
-const TRIAGE_API_URL = 'http://192.168.1.4:3001/api';
+const TRIAGE_API_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}:3001/api`;
 
 export interface EmergencyPayload {
   patientName: string;

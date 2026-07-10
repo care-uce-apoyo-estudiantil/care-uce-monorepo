@@ -1,8 +1,10 @@
 import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+declare const process: { env: { EXPO_PUBLIC_API_URL?: string } } | undefined;
+
 // 🌍 ENVIRONMENT MANAGEMENT (Uncomment the one you are going to use)
-const API_BASE_URL = 'http://192.168.1.4:3000/api'; // Local (Your physical IP)
+const API_BASE_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}:3000/api`; // Local (Your physical IP)
 //const API_BASE_URL = 'http://100.28.235.67/api';
 // const API_BASE_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
 export interface AuthResponse {
