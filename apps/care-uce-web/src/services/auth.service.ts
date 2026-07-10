@@ -2,8 +2,8 @@ import axios, { AxiosInstance } from 'axios';
 import { AuthFormData } from '../components/organisms/AuthForm'; // Import the new interface
 
 // 🌍 GESTIÓN DE ENTORNOS (Descomenta el que vayas a usar)
-const API_BASE_URL = 'http://10.10.12.162:3000/api'; // Local
-// const API_BASE_URL = 'http://100.28.235.67/api'; // QA
+//const API_BASE_URL = 'http://10.10.12.162:3000/api'; // Local
+const API_BASE_URL = 'http://100.28.235.67/api'; // QA
 // const API_BASE_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
 
 export interface AuthResponse {

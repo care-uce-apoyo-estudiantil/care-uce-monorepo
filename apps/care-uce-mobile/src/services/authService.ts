@@ -2,8 +2,8 @@ import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 🌍 ENVIRONMENT MANAGEMENT (Uncomment the one you are going to use)
-const API_BASE_URL = 'http://10.10.12.162:3000/api'; // Local (Your physical IP)
-//const API_BASE_URL = 'http://100.28.235.67/api';
+//const API_BASE_URL = 'http://10.10.12.162:3000/api'; // Local (Your physical IP)
+const API_BASE_URL = 'http://100.28.235.67/api';
 // const API_BASE_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
 
 export interface AuthResponse {

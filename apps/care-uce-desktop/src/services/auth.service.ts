@@ -1,10 +1,11 @@
 import axios from 'axios';
 
-//const API_URL = import.meta.env.VITE_API_URL || 'http://100.28.235.67:3000/api';
-const API_URL = import.meta.env.VITE_API_URL || 'http://10.10.12.162:3000/api';
+// 1. ELIMINAMOS EL PUERTO 3000 PARA QUE IGUALE AL MOBILE
+//const API_BASE_URL = 'http://10.10.12.162:3000/api'; // Local
+const API_URL = import.meta.env.VITE_API_URL || 'http://100.28.235.67/api';
 
 class AuthService {
-  // Login (Se queda igual)
+  // Login
   async login(email: string, password: string) {
     try {
       const response = await axios.post(`${API_URL}/auth/login`, {
@@ -18,11 +19,15 @@ class AuthService {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        throw new Error(
-          error.response?.data?.message || 'Credenciales inválidas',
-        );
+        // 2. REPLICAMOS EL MANEJO DE ERRORES DEL MOBILE
+        const validationMessages = error.response?.data?.message;
+        const formattedMessage = Array.isArray(validationMessages)
+          ? validationMessages.join(' - ') 
+          : validationMessages || 'Credenciales inválidas';
+          
+        throw new Error(formattedMessage);
       }
-      throw new Error('Error al conectar con el servidor en AWS');
+      throw new Error('Error de red: No se pudo conectar con AWS');
     }
   }
 
@@ -38,8 +43,8 @@ class AuthService {
       const response = await axios.post(`${API_URL}/auth/register`, {
         email,
         password,
-        nombre, // <-- Nuevo campo
-        cedula, // <-- Nuevo campo
+        nombre,
+        cedula,
         role,
       });
       if (response.data.access_token) {
@@ -49,11 +54,15 @@ class AuthService {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        throw new Error(
-          error.response?.data?.message || 'Error al registrar el usuario',
-        );
+        // 2. REPLICAMOS EL MANEJO DE ERRORES DEL MOBILE
+        const validationMessages = error.response?.data?.message;
+        const formattedMessage = Array.isArray(validationMessages)
+          ? validationMessages.join(' - ')
+          : validationMessages || 'Error al registrar el usuario';
+          
+        throw new Error(formattedMessage);
       }
-      throw new Error('Error al conectar con el servidor en AWS');
+      throw new Error('Error de red: No se pudo conectar con AWS');
     }
   }
 
