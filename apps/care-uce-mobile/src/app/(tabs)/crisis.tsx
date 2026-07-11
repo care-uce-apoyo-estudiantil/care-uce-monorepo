@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { ShieldAlert, ShieldCheck, MessageSquare } from 'lucide-react-native';
+import { ShieldAlert, MessageSquare } from 'lucide-react-native';
 
 export default function CrisisScreen() {
   return (

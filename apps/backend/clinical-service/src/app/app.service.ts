@@ -6,30 +6,42 @@ import {
   ClinicalRecordDocument,
 } from './schemas/clinical-record.schema';
 
+// Strict interface for the payload to avoid implicit any/type errors
+interface TriagePayload {
+  studentId: string;
+  triageId: string;
+  riskLevel: string;
+  createdAt: Date;
+}
+
 @Injectable()
 export class AppService {
   private readonly logger = new Logger(AppService.name);
 
   constructor(
     @InjectModel(ClinicalRecord.name)
-    private clinicalRecordModel: Model<ClinicalRecordDocument>,
+    private readonly clinicalRecordModel: Model<ClinicalRecordDocument>,
   ) {}
 
-  async createTemporaryRecord(payload: any) {
+  async createTemporaryRecord(
+    payload: Omit<TriagePayload, 'createdAt'>,
+  ): Promise<ClinicalRecordDocument> {
+    const dataToSave: TriagePayload = {
+      ...payload,
+      createdAt: new Date(),
+    };
+
     this.logger.log(
-      `Creando expediente clínico para el estudiante: ${payload.studentId}`,
+      `Creating clinical record for student: ${dataToSave.studentId}`,
     );
 
-    const newRecord = new this.clinicalRecordModel({
-      studentId: payload.studentId,
-      triageId: payload.triageId,
-      riskLevel: payload.riskLevel,
-    });
+    // Create the record and explicitly cast the result as the Document type
+    const savedRecord = await this.clinicalRecordModel.create(dataToSave);
 
-    const savedRecord = await newRecord.save();
     this.logger.log(
-      `✅ Expediente creado exitosamente en MongoDB con ID: ${savedRecord._id}`,
+      `✅ Record successfully created in MongoDB with ID: ${savedRecord._id}`,
     );
+
     return savedRecord;
   }
 }

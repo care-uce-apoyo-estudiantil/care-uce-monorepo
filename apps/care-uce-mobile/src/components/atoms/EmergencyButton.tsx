@@ -1,78 +1,94 @@
-import React from 'react';
+// Location: apps/care-uce-mobile/src/components/atoms/EmergencyButton.tsx
+import React, { useState } from 'react';
 import {
   TouchableOpacity,
   Text,
   StyleSheet,
+  ActivityIndicator,
+  Alert,
   View,
-  ViewStyle,
 } from 'react-native';
-import { PhoneCall } from 'lucide-react-native';
-// Importamos nuestro Theme
-import { Colors, Spacing, Typography } from '../../constants/Theme';
+import { Ionicons } from '@expo/vector-icons';
+import triageService from '../../services/triageService';
 
 interface EmergencyButtonProps {
-  onPress: () => void;
-  title?: string;
-  subtitle?: string;
-  style?: ViewStyle;
+  onPress?: () => void;
 }
 
-export const EmergencyButton = ({
+export const EmergencyButton: React.FC<EmergencyButtonProps> = ({
   onPress,
-  title = 'AYUDA RÁPIDA',
-  subtitle = 'Soporte 24h',
-  style,
-}: EmergencyButtonProps) => {
-  return (
-    <View style={[styles.container, style]}>
-      <TouchableOpacity
-        style={styles.panicButton}
-        onPress={onPress}
-        activeOpacity={0.8}
-      >
-        <PhoneCall color={Colors.crisisText} size={36} />
-      </TouchableOpacity>
+}) => {
+  const [isLoading, setIsLoading] = useState(false);
 
-      {/* Texto debajo del botón circular */}
-      <Text style={styles.panicTitle}>{title}</Text>
-      {subtitle && <Text style={styles.panicSub}>{subtitle}</Text>}
-    </View>
+  const handleEmergencyTrigger = async () => {
+    if (onPress) onPress();
+
+    setIsLoading(true);
+    try {
+      // 1. Envía la alerta real al backend
+      await triageService.triggerEmergency('High stress panic attack detected');
+
+      // 2. Muestra éxito
+      Alert.alert(
+        'Emergency Alert Sent',
+        'A clinical psychologist has been notified and will contact you immediately. Please stay safe.',
+      );
+    } catch {
+      Alert.alert(
+        'Connection Error',
+        "We couldn't reach the server. Please call emergency services directly.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <TouchableOpacity
+      style={styles.buttonContainer}
+      onPress={handleEmergencyTrigger}
+      disabled={isLoading}
+      activeOpacity={0.8}
+    >
+      <View style={styles.rippleEffect}>
+        {isLoading ? (
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        ) : (
+          <Ionicons name="warning" size={48} color="#FFFFFF" />
+        )}
+      </View>
+      <Text style={styles.buttonText}>
+        {isLoading ? 'SENDING ALERT...' : 'PANIC BUTTON'}
+      </Text>
+    </TouchableOpacity>
   );
 };
 
+// 🔥 AQUÍ ESTABA EL ERROR: Faltaba definir los estilos
 const styles = StyleSheet.create({
-  container: {
+  buttonContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.xl,
-    paddingVertical: Spacing.sm,
+    marginVertical: 20,
   },
-  panicButton: {
-    backgroundColor: Colors.crisis, // Usamos el color del tema
-    width: 100, // Lo hacemos circular
-    height: 100,
-    borderRadius: 50,
-    justifyContent: 'center',
+  rippleEffect: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#EF4444', // Red-500
     alignItems: 'center',
-    marginBottom: Spacing.sm, // Espacio para el texto de abajo
-
-    // Sombras intensas para destacar
-    shadowColor: Colors.crisis,
-    shadowOffset: { width: 0, height: 6 },
+    justifyContent: 'center',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 10, // Sombra para Android
+    shadowRadius: 15,
+    elevation: 10,
   },
-  panicTitle: {
-    // Usamos la tipografía del tema
-    ...Typography.emergencyTitle,
-    color: Colors.crisis, // Cambiamos el color para que se lea fuera del botón
-    textAlign: 'center',
-  },
-  panicSub: {
-    ...Typography.emergencySub,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 2,
+  buttonText: {
+    marginTop: 15,
+    color: '#EF4444',
+    fontSize: 16,
+    fontWeight: 'bold',
+    letterSpacing: 1.5,
   },
 });

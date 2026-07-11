@@ -12,7 +12,7 @@ const normalizedStories = [
     files: '**/*.stories.?(ts|tsx|js|jsx)',
     importPathMatcher:
       /^\.(?:(?:^|\/|(?:(?:(?!(?:^|\/)\.).)*?)\/)(?!\.)(?=.)[^/]*?\.stories\.(?:ts|tsx|js|jsx)?)$/,
-    // @ts-ignore
+    // @ts-expect-error require.context is not typed
     req: require.context(
       './stories',
       true,
@@ -32,18 +32,18 @@ const annotations = [
   require('@storybook/addon-ondevice-actions/preview'),
 ];
 
-global.STORIES = normalizedStories;
+globalThis.STORIES = normalizedStories;
 
-// @ts-ignore
+// @ts-expect-error Hot module replacement may be undefined in this environment
 module?.hot?.accept?.();
 
-if (!global.view) {
-  global.view = start({
+if (!globalThis.view) {
+  globalThis.view = start({
     annotations,
     storyEntries: normalizedStories,
   });
 } else {
-  updateView(global.view, annotations, normalizedStories);
+  updateView(globalThis.view, annotations, normalizedStories);
 }
 
-export const view = global.view;
+export const view = globalThis.view;

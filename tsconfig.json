@@ -26,6 +26,12 @@
     },
     {
       "path": "./apps/backend/clinical-service"
+    },
+    {
+      "path": "./apps/backend/appointment-service-e2e"
+    },
+    {
+      "path": "./apps/backend/appointment-service"
     }
   ],
   "ts-node": {

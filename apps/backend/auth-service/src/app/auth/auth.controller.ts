@@ -1,40 +1,58 @@
+// Location: apps/backend/auth-service/src/app/auth/auth.controller.ts
 import {
   Controller,
   Post,
   Body,
+  Headers,
   HttpCode,
   HttpStatus,
   Get,
-  UseGuards,
-  Request,
+  Patch,
+  Param,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  async register(@Body() body: any) {
-    // Recibimos los datos del cliente y los enviamos al servicio
-    return this.authService.register(body.email, body.password, body.role);
+  async register(
+    @Body() registerDto: RegisterDto,
+    @Headers('x-client-origin') origin: string,
+  ): Promise<unknown> {
+    // Si no viene el header, le ponemos 'unknown' por defecto
+    return this.authService.register(registerDto, origin || 'unknown');
   }
 
-  @HttpCode(HttpStatus.OK) // El login devuelve un 200 OK, no un 201 Created
+  @HttpCode(HttpStatus.OK)
   @Post('login')
-  async login(@Body() body: any) {
-    // Enviamos las credenciales al servicio
-    return this.authService.login(body.email, body.password);
+  async login(@Body() loginDto: LoginDto): Promise<unknown> {
+    // Le pasamos el DTO completo al servicio
+    return this.authService.login(loginDto);
   }
-  @UseGuards(JwtAuthGuard)
-  @Get('profile')
-  getProfile(@Request() req: any) {
-    // Si el usuario no envía un Token válido en los Headers, NestJS devolverá un 401 Unauthorized automáticamente.
-    // Si es válido, req.user tendrá los datos desencriptados.
-    return {
-      message: '¡Acceso concedido a ruta protegida!',
-      user: req.user,
-    };
+
+  // 👇 NUEVOS ENDPOINTS PARA EL PANEL ADMINISTRATIVO WEB 👇
+
+  @Get('users')
+  async getAllUsers(): Promise<unknown> {
+    return this.authService.getAllUsers();
+  }
+
+  @Patch('users/:id/role')
+  async updateRole(
+    @Param('id') id: string,
+    @Body('role') role: string,
+  ): Promise<unknown> {
+    return this.authService.updateRole(id, role);
+  }
+
+  @Get('doctors')
+  async getDoctors(): Promise<unknown> {
+    const allUsers = await this.authService.getAllUsers();
+    // Filtramos para devolver solo a los que tienen rol de doctor
+    return allUsers.filter((user) => user.role === 'doctor');
   }
 }
