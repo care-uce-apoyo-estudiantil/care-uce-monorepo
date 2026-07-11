@@ -1,5 +1,5 @@
 // Location: apps/care-uce-mobile/src/app/(tabs)/appointments.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -23,14 +23,12 @@ import appointmentService, {
   AppointmentPayload,
 } from '../../services/appointmentService';
 
-// Helper to calculate the next 5 working days (INCLUDING TODAY)
 const getNext5WorkDays = (): Date[] => {
   const dates: Date[] = [];
   const current = new Date();
 
   while (dates.length < 5) {
     const day = current.getDay();
-    // 0 = Sunday, 6 = Saturday. Skip weekends.
     if (day !== 0 && day !== 6) {
       dates.push(new Date(current));
     }
@@ -71,20 +69,26 @@ export default function AppointmentsScreen() {
 
   const validDates = getNext5WorkDays();
 
-  useEffect(() => {
-    const fetchDoctors = async () => {
-      setIsLoading(true);
-      try {
-        const realDoctors = await appointmentService.getAvailableDoctors();
-        setDoctors(realDoctors);
-      } catch (error) {
-        console.error('Error fetching doctors:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchDoctors();
-  }, []);
+  // 🔥 NUEVO: Filtra en vivo llamando al backend con el área seleccionada
+  const fetchDoctorsForArea = async (areaName: string) => {
+    setSelectedArea(areaName);
+    setStep(2);
+    setIsLoading(true);
+    setDoctors([]); // Limpiar doctores anteriores
+    try {
+      const filteredDoctors =
+        await appointmentService.getAvailableDoctors(areaName);
+      setDoctors(filteredDoctors);
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+      Alert.alert(
+        'Error',
+        'No se pudieron cargar los especialistas para esta área.',
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSelectDoctor = async (doc: Doctor) => {
     setSelectedDoctor(doc);
@@ -170,16 +174,14 @@ export default function AppointmentsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
+        {/* PASO 1: ÁREA CLÍNICA */}
         {step === 1 && (
           <View style={styles.stepContainer}>
             {AREAS.map((area) => (
               <TouchableOpacity
                 key={area.id}
                 style={styles.card}
-                onPress={() => {
-                  setSelectedArea(area.name);
-                  setStep(2);
-                }}
+                onPress={() => fetchDoctorsForArea(area.name)} // 🔥 Ejecuta el filtro estricto
               >
                 <View style={[styles.avatar, { backgroundColor: '#E8F0FE' }]}>
                   <BriefcaseMedical color="#1976D2" size={24} />
@@ -191,10 +193,20 @@ export default function AppointmentsScreen() {
           </View>
         )}
 
+        {/* PASO 2: DOCTORES */}
         {step === 2 && (
           <View style={styles.stepContainer}>
             {isLoading ? (
               <ActivityIndicator size="large" color="#003366" />
+            ) : doctors.length === 0 ? (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <Text
+                  style={{ color: '#666', fontSize: 16, textAlign: 'center' }}
+                >
+                  No hay especialistas registrados en el área de {selectedArea}{' '}
+                  por el momento.
+                </Text>
+              </View>
             ) : (
               doctors.map((doc) => (
                 <TouchableOpacity
@@ -210,7 +222,7 @@ export default function AppointmentsScreen() {
                       {doc.nombre}
                     </Text>
                     <Text style={{ color: '#666', fontSize: 13 }}>
-                      Especialista Disponible
+                      {selectedArea}
                     </Text>
                   </View>
                   <ChevronRight color="#CCC" size={24} />
@@ -220,6 +232,7 @@ export default function AppointmentsScreen() {
           </View>
         )}
 
+        {/* PASO 3: FECHAS Y HORAS */}
         {step === 3 && (
           <View style={styles.stepContainer}>
             <Text style={styles.sectionTitle}>1. Available Days</Text>
@@ -231,7 +244,6 @@ export default function AppointmentsScreen() {
               {validDates.map((date, idx) => (
                 <TouchableOpacity
                   key={idx}
-                  // Fix: Comparison using getTime() for exact date matching
                   style={[
                     styles.dateChip,
                     selectedDate?.getTime() === date.getTime() &&

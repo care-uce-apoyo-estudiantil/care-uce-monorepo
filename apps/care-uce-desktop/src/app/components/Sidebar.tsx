@@ -1,3 +1,4 @@
+// Location: apps/care-uce-desktop/src/app/components/Sidebar.tsx
 import React from 'react';
 import {
   Stethoscope,
@@ -6,13 +7,15 @@ import {
   MessageSquareWarning,
   LogOut,
   CalendarDays,
+  Settings,
 } from 'lucide-react';
 import { DashboardView } from '../../types/clinical';
 
 interface SidebarProps {
   activeView: DashboardView;
   onViewChange: (view: DashboardView) => void;
-  userName: string; // <-- Changed from userEmail to userName
+  userName: string;
+  specialtyLabel?: string; // 🔥 Nueva propiedad
   onLogout: () => void;
 }
 
@@ -20,6 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeView,
   onViewChange,
   userName,
+  specialtyLabel = 'Psicología Clínica', // Fallback
   onLogout,
 }) => {
   const getButtonClass = (view: DashboardView) => {
@@ -67,19 +71,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <MessageSquareWarning size={20} /> Canal de Crisis
         </button>
+        <button
+          onClick={() => onViewChange('settings')}
+          className={getButtonClass('settings')}
+        >
+          <Settings size={20} /> Configuración
+        </button>
       </nav>
 
       <div className="p-4 bg-slate-900 border-t border-slate-700 flex flex-col gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center font-bold text-lg shrink-0 uppercase">
-            {/* Extract first letter safely */}
             {userName ? userName.charAt(0) : 'D'}
           </div>
           <div className="overflow-hidden">
             <p className="text-sm font-bold truncate" title={userName}>
               {userName}
             </p>
-            <p className="text-xs text-slate-400">Psicología Clínica</p>
+            {/* 🔥 MOSTRAMOS LA ESPECIALIDAD DINÁMICA AQUÍ */}
+            <p
+              className="text-xs text-slate-400 truncate"
+              title={specialtyLabel}
+            >
+              {specialtyLabel}
+            </p>
           </div>
         </div>
 

@@ -9,10 +9,12 @@ import {
   Get,
   Patch,
   Param,
+  Query,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { User } from '../users/user.entity';
 
 @Controller('auth')
 export class AuthController {
@@ -23,21 +25,23 @@ export class AuthController {
     @Body() registerDto: RegisterDto,
     @Headers('x-client-origin') origin: string,
   ): Promise<unknown> {
-    // Si no viene el header, le ponemos 'unknown' por defecto
+    // FIX: Changed to unknown to accept the Auto-Login JWT response
+    // Fallback to 'unknown' if header is not present
     return this.authService.register(registerDto, origin || 'unknown');
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Body() loginDto: LoginDto): Promise<unknown> {
-    // Le pasamos el DTO completo al servicio
+    // FIX: Also accepts the JWT response
+    // Pass the complete DTO to the service
     return this.authService.login(loginDto);
   }
 
-  // 👇 NUEVOS ENDPOINTS PARA EL PANEL ADMINISTRATIVO WEB 👇
+  // 👇 NEW ENDPOINTS FOR WEB ADMIN PANEL 👇
 
   @Get('users')
-  async getAllUsers(): Promise<unknown> {
+  async getAllUsers(): Promise<User[]> {
     return this.authService.getAllUsers();
   }
 
@@ -45,14 +49,30 @@ export class AuthController {
   async updateRole(
     @Param('id') id: string,
     @Body('role') role: string,
-  ): Promise<unknown> {
+  ): Promise<User> {
     return this.authService.updateRole(id, role);
   }
 
+  // Updated endpoint to filter doctors dynamically by specialty query parameter
   @Get('doctors')
-  async getDoctors(): Promise<unknown> {
+  async getDoctors(@Query('specialty') specialty?: string): Promise<User[]> {
     const allUsers = await this.authService.getAllUsers();
-    // Filtramos para devolver solo a los que tienen rol de doctor
-    return allUsers.filter((user) => user.role === 'doctor');
+    let doctors = allUsers.filter((user) => user.role === 'doctor');
+
+    if (specialty) {
+      // Decode the URL encoded specialty and filter exactly
+      const decodedSpecialty = decodeURIComponent(specialty);
+      doctors = doctors.filter((doc) => doc.specialty === decodedSpecialty);
+    }
+    return doctors;
+  }
+
+  // New endpoint allowing doctors from the Desktop app to update their clinical specialty
+  @Patch('profile/specialty')
+  @HttpCode(HttpStatus.OK)
+  async updateSpecialty(
+    @Body() body: { email: string; specialty: string },
+  ): Promise<User> {
+    return this.authService.updateUserSpecialty(body.email, body.specialty);
   }
 }

@@ -10,6 +10,7 @@ import { Appointments } from './components/Appointments';
 import { PatientRecord, DashboardView } from '../types/clinical';
 import authService from '../services/auth.service';
 import triageService from '../services/triage.service';
+import { DoctorSettings } from './components/DoctorSettings';
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -22,17 +23,35 @@ export function Dashboard() {
   const [activeCases, setActiveCases] = useState<PatientRecord[]>([]);
   const [isLoadingCases, setIsLoadingCases] = useState(true);
 
-  // User Profile Name State
+  // User Profile Name & Specialty State
   const [userName, setUserName] = useState('');
+  const [userSpecialty, setUserSpecialty] = useState('Psicología Clínica');
 
-  // Load authenticated user data showing the real name
+  // Load authenticated user data and listen for profile updates
   useEffect(() => {
-    const userString = localStorage.getItem('user');
-    if (userString) {
-      const user = JSON.parse(userString) as { nombre: string; email?: string };
-      // Mostramos el Nombre. Si no existe, caemos en el email.
-      setUserName(user.nombre || user.email || 'Doctor Profesional');
-    }
+    const loadUserData = () => {
+      const userString = localStorage.getItem('user');
+      if (userString) {
+        const user = JSON.parse(userString) as {
+          nombre: string;
+          email?: string;
+          specialty?: string;
+        };
+        setUserName(user.nombre || user.email || 'Doctor Profesional');
+
+        // Si el usuario tiene una especialidad guardada, la actualizamos en el Sidebar
+        if (user.specialty) {
+          setUserSpecialty(user.specialty);
+        }
+      }
+    };
+
+    loadUserData(); // Cargar al inicio
+
+    // Escuchar cuando DoctorSettings guarde una nueva especialidad
+    window.addEventListener('user-profile-updated', loadUserData);
+    return () =>
+      window.removeEventListener('user-profile-updated', loadUserData);
   }, []);
 
   // Fetch Real Triage Cases from Backend
@@ -49,8 +68,6 @@ export function Dashboard() {
     };
 
     fetchCases(); // Initial fetch
-
-    // Polling: Check for new panic button alerts every 5 seconds
     const interval = setInterval(fetchCases, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -69,7 +86,6 @@ export function Dashboard() {
           <h2 className="text-lg font-semibold text-slate-700">
             Active Triage Queue
           </h2>
-          {/* Animated pulse dot if there are active cases */}
           {activeCases.length > 0 && (
             <span className="flex h-3 w-3 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -160,6 +176,7 @@ export function Dashboard() {
     </div>
   );
 
+  // Central Hub Router
   const renderMainContent = () => {
     if (selectedPatient) {
       const pacienteProp = {
@@ -188,6 +205,8 @@ export function Dashboard() {
         return <RecordsHistory />;
       case 'chat':
         return <CrisisChat />;
+      case 'settings':
+        return <DoctorSettings />; // Panel de configuración
       default:
         return renderTriageInbox();
     }
@@ -203,6 +222,7 @@ export function Dashboard() {
         }}
         onLogout={handleLogout}
         userName={userName}
+        specialtyLabel={userSpecialty} // 🔥 PASAMOS LA ESPECIALIDAD AL SIDEBAR
       />
       <main className="flex-1 flex flex-col overflow-hidden relative">
         {renderMainContent()}

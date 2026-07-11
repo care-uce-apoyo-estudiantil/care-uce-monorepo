@@ -27,9 +27,13 @@ export class User {
   @Column({ nullable: true })
   nombre!: string;
 
-  // FIX: Added unique constraint to enforce identification document integrity at DB level
+  // Added unique constraint to enforce identification document integrity at DB level
   @Column({ unique: true, nullable: true })
   cedula!: string;
+
+  // Clinical specialty for routing mobile appointments (e.g., Psicología Clínica)
+  @Column({ nullable: true })
+  specialty!: string;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt!: Date;

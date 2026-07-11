@@ -20,6 +20,7 @@ export interface Doctor {
   nombre: string;
   email: string;
   role: string;
+  specialty?: string;
 }
 
 export interface AppointmentPayload {
@@ -30,14 +31,19 @@ export interface AppointmentPayload {
 }
 
 class AppointmentService {
-  private async getAuthToken() {
+  private async getAuthToken(): Promise<string | null> {
     return await AsyncStorage.getItem('auth_token');
   }
 
-  // 🔥 1. Traer Doctores Reales de la Base de Datos
-  async getAvailableDoctors(): Promise<Doctor[]> {
+  // 🔥 1. Fetch Real Doctors from the Database (Filtered by Specialty)
+  async getAvailableDoctors(specialty?: string): Promise<Doctor[]> {
     try {
-      const response = await axios.get(`${AUTH_API_URL}/auth/doctors`);
+      // Append specialty query parameter if provided
+      const url = specialty
+        ? `${AUTH_API_URL}/auth/doctors?specialty=${encodeURIComponent(specialty)}`
+        : `${AUTH_API_URL}/auth/doctors`;
+
+      const response = await axios.get<Doctor[]>(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching doctors:', error);
@@ -45,7 +51,7 @@ class AppointmentService {
     }
   }
 
-  // 🔥 2. Enviar el Agendamiento al Microservicio de Citas
+  // 🔥 2. Send Booking to Appointments Microservice
   async bookAppointment(payload: AppointmentPayload): Promise<void> {
     try {
       const token = await this.getAuthToken();
@@ -57,13 +63,14 @@ class AppointmentService {
       throw new Error('No se pudo procesar la solicitud de cita.');
     }
   }
-  // 🔥 NUEVO: Traer la agenda del doctor para bloquear horarios en el celular
+
+  // 🔥 NEW: Fetch Doctor's Agenda to block slots on mobile
   async getDoctorAppointments(
     doctorName: string,
   ): Promise<AppointmentPayload[]> {
     try {
-      const response = await axios.get(
-        `${APPOINTMENT_API_URL}/appointments?doctorName=${doctorName}`,
+      const response = await axios.get<AppointmentPayload[]>(
+        `${APPOINTMENT_API_URL}/appointments?doctorName=${encodeURIComponent(doctorName)}`,
       );
       return response.data;
     } catch (error) {

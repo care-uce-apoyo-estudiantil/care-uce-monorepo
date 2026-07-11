@@ -3,9 +3,10 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, FindOptionsSelect } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../users/user.entity';
@@ -20,6 +21,7 @@ interface LoginResponse {
     role: string;
     nombre: string;
     cedula: string;
+    specialty?: string;
   };
 }
 
@@ -124,6 +126,8 @@ export class AuthService {
         role: user.role,
         nombre: user.nombre || 'Usuario',
         cedula: user.cedula || '0000000000',
+        // 🔥 AÑADE ESTA LÍNEA PARA QUE EL FRONTEND CONOZCA LA ESPECIALIDAD
+        specialty: user.specialty,
       },
     };
   }
@@ -132,16 +136,19 @@ export class AuthService {
    * Retrieves all registered users for the Admin Web Dashboard.
    * Excludes sensitive data like password hashes.
    */
-  async getAllUsers(): Promise<Partial<User>[]> {
+  async getAllUsers(): Promise<User[]> {
+    const selectOptions: FindOptionsSelect<User> = {
+      id: true,
+      nombre: true,
+      email: true,
+      cedula: true,
+      role: true,
+      specialty: true,
+      createdAt: true,
+    };
+
     return await this.userRepository.find({
-      select: {
-        id: true,
-        nombre: true,
-        email: true,
-        cedula: true,
-        role: true,
-        createdAt: true,
-      },
+      select: selectOptions,
       order: { createdAt: 'DESC' }, // Newest first
     });
   }
@@ -149,7 +156,7 @@ export class AuthService {
   /**
    * Updates a user's role (Used by Administrators).
    */
-  async updateRole(id: string, newRole: string): Promise<Partial<User>> {
+  async updateRole(id: string, newRole: string): Promise<User> {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
       throw new UnauthorizedException('User not found in the system');
@@ -160,6 +167,23 @@ export class AuthService {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password_hash, ...result } = savedUser;
-    return result;
+    return result as User;
+  }
+
+  /**
+   * Updates a doctor's clinical specialty.
+   */
+  async updateUserSpecialty(email: string, specialty: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException('Doctor profile not found in the database');
+    }
+
+    user.specialty = specialty;
+    const savedUser = await this.userRepository.save(user);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password_hash, ...result } = savedUser;
+    return result as User;
   }
 }
