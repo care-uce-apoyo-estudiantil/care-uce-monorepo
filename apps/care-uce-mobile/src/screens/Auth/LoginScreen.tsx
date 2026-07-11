@@ -32,12 +32,11 @@ export const LoginScreen = () => {
   const [isPasswordVisible, setPasswordVisible] = useState(false);
 
   /**
-   * Maneja el login con validación y error handling
+   * Handles login with validation and error handling
    */
   const handleLogin = async () => {
     clearError();
 
-    // Validación básica actualizada a Cédula
     if (!email.trim()) {
       Alert.alert('Error', 'Por favor ingresa tu email o cédula');
       return;
@@ -50,18 +49,24 @@ export const LoginScreen = () => {
 
     try {
       await login(email.trim(), password);
-      // 👇 LÍNEA NUEVA: Pop-up de bienvenida
+
       Alert.alert(
         '¡Bienvenido!',
         'Has iniciado sesión exitosamente en CareUCE.',
       );
       router.replace('/(tabs)/home');
-    } catch (err: any) {
-      Alert.alert('Error de autenticación', error || 'Credenciales inválidas');
+    } catch (err: unknown) {
+      // ESLint fix: removed 'any'
+      const errorMessage =
+        (err as { message?: string })?.message ||
+        error ||
+        'Credenciales inválidas';
+      Alert.alert('Error de autenticación', errorMessage);
     }
   };
+
   /**
-   * Navega a la pantalla de registro
+   * Navigates to the registration screen
    */
   const handleNavigateToRegister = () => {
     clearError();
@@ -80,12 +85,11 @@ export const LoginScreen = () => {
 
       {/* Main Authentication Form */}
       <View style={styles.floatingContainer}>
-        {/* Error Message */}
-        {error && (
+        {error ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error}</Text>
           </View>
-        )}
+        ) : null}
 
         <InputWithIcon
           icon={User}
@@ -94,7 +98,6 @@ export const LoginScreen = () => {
           onChangeText={setEmail}
           editable={!isLoading}
         />
-
         <InputWithIcon
           icon={Lock}
           placeholder="Contraseña"
@@ -110,7 +113,6 @@ export const LoginScreen = () => {
           <Text style={styles.linkText}>¿Olvidaste tu contraseña?</Text>
         </TouchableOpacity>
 
-        {/* Login Button con Loading State */}
         {isLoading ? (
           <View style={styles.loadingButton}>
             <ActivityIndicator size="large" color="#FFFFFF" />

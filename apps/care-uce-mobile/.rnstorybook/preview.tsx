@@ -1,4 +1,4 @@
-import type { Preview } from '@storybook/react-native';
+import type { Preview } from '@storybook/react';
 
 const preview: Preview = {
   parameters: {

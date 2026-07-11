@@ -1,123 +1,147 @@
-import React, { useState } from 'react';
+// Location: apps/care-uce-web/src/pages/DashboardPage.tsx
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Shield, Activity, RefreshCw } from 'lucide-react';
+import authService from '../services/auth.service';
+import adminService, { UserData } from '../services/admin.service';
 
-export const DashboardPage: React.FC = () => {
-  // Estados para simular data en tiempo real
-  const [alertasCriticas, setAlertasCriticas] = useState(3);
-  const [intervenciones, setIntervenciones] = useState(128);
+// FIX: Changed to named export to perfectly match the router wrapper matching 'App.tsx' import rules
+export function DashboardPage() {
+  const navigate = useNavigate();
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [casosPendientes, setCasosPendientes] = useState([
-    {
-      id: 'EST-2026-8901',
-      nivel: 'Riesgo Alto',
-      fecha: '24 Jun 2026',
-      color: 'bg-red-100 text-red-700',
-    },
-    {
-      id: 'EST-2026-8944',
-      nivel: 'Riesgo Medio',
-      fecha: '23 Jun 2026',
-      color: 'bg-yellow-100 text-yellow-700',
-    },
-  ]);
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      const data = await adminService.getUsers();
+      setUsers(data);
+    } catch (error) {
+      console.error('Error fetching dashboard users data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const handleAtenderCaso = (id: string) => {
-    setCasosPendientes(casosPendientes.filter((caso) => caso.id !== id));
-    setAlertasCriticas((prev) => (prev > 0 ? prev - 1 : 0));
-    setIntervenciones((prev) => prev + 1);
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    try {
+      await adminService.updateUserRole(userId, newRole);
+      // Optimistic UI state update block
+      setUsers(
+        users.map((u) => (u.id === userId ? { ...u, role: newRole } : u)),
+      );
+    } catch {
+      alert('Error updating role. Check analytical system connections.');
+    }
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate('/login');
   };
 
   return (
-    <div className="space-y-8">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-800">Resumen Operativo</h2>
-        <p className="text-gray-500">
-          Monitoreo de estado de la comunidad estudiantil.
-        </p>
-      </div>
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+      {/* Top Navigation Bar */}
+      <header className="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center shadow-sm">
+        <div className="flex items-center gap-3">
+          <Shield className="text-blue-600" size={28} />
+          <h1 className="text-xl font-bold text-slate-800">
+            CareUCE <span className="text-blue-600">Admin Portal</span>
+          </h1>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+        >
+          Cerrar Sesión
+        </button>
+      </header>
 
-      {/* Tarjetas de Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-red-500">
-          <h3 className="text-red-500 text-xs font-bold uppercase tracking-wide">
-            Alertas Críticas Activas
-          </h3>
-          <p className="text-4xl font-extrabold text-gray-800 mt-2">
-            {alertasCriticas}
-          </p>
+      {/* Main Analytical Section */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-8">
+        <div className="flex justify-between items-end mb-8">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+              <Users className="text-slate-500" /> Gestión de Accesos y Usuarios
+            </h2>
+            <p className="text-slate-500 mt-1">
+              Supervisa y asigna roles a todos los miembros de la plataforma.
+            </p>
+          </div>
+          <button
+            onClick={fetchUsers}
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold bg-blue-50 px-4 py-2 rounded-lg transition-colors"
+          >
+            <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />{' '}
+            Refrescar
+          </button>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-yellow-500">
-          <h3 className="text-yellow-500 text-xs font-bold uppercase tracking-wide">
-            Casos en Seguimiento
-          </h3>
-          <p className="text-4xl font-extrabold text-gray-800 mt-2">14</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
-          <h3 className="text-green-500 text-xs font-bold uppercase tracking-wide">
-            Intervenciones Exitosas
-          </h3>
-          <p className="text-4xl font-extrabold text-gray-800 mt-2">
-            {intervenciones}
-          </p>
-        </div>
-      </div>
 
-      {/* Tabla Dinámica */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-        <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/50">
-          <h2 className="text-lg font-bold text-gray-800">
-            Alertas Recientes - Ingeniería en Sistemas
-          </h2>
-        </div>
-        <table className="w-full">
-          <thead className="bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wider border-b">
-            <tr>
-              <th className="px-6 py-4">Identificador</th>
-              <th className="px-6 py-4">Nivel de Riesgo</th>
-              <th className="px-6 py-4">Fecha</th>
-              <th className="px-6 py-4 text-right">Acción Rápida</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 text-sm">
-            {casosPendientes.length > 0 ? (
-              casosPendientes.map((caso) => (
-                <tr
-                  key={caso.id}
-                  className="hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-6 py-4 font-bold text-gray-900">
-                    {caso.id}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-bold ${caso.color}`}
-                    >
-                      {caso.nivel}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">{caso.fecha}</td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => handleAtenderCaso(caso.id)}
-                      className="bg-[#003366] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-800 transition-colors"
-                    >
-                      Tomar Caso
-                    </button>
-                  </td>
+        {/* Dynamic Real-Time Users Table Block */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          {isLoading ? (
+            <div className="p-12 flex flex-col items-center text-slate-400">
+              <Activity className="animate-spin mb-4" size={40} />
+              <p>Cargando base de datos...</p>
+            </div>
+          ) : (
+            <table className="w-full text-left text-sm text-slate-600">
+              <thead className="bg-slate-100 text-slate-700 uppercase font-bold text-xs border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-4">Nombre / Cédula</th>
+                  <th className="px-6 py-4">Correo Institucional</th>
+                  <th className="px-6 py-4">Fecha de Registro</th>
+                  <th className="px-6 py-4">Rol de Acceso</th>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-6 py-8 text-center text-gray-400 italic"
-                >
-                  No hay alertas críticas pendientes. ¡Excelente trabajo!
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {users.map((user) => (
+                  <tr
+                    key={user.id}
+                    className="hover:bg-slate-50 transition-colors"
+                  >
+                    <td className="px-6 py-4">
+                      <p className="font-bold text-slate-800 capitalize">
+                        {user.nombre}
+                      </p>
+                      <p className="text-xs text-slate-400 font-mono mt-1">
+                        CI: {user.cedula}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4 font-medium">{user.email}</td>
+                    <td className="px-6 py-4">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <select
+                        value={user.role}
+                        onChange={(e) =>
+                          handleRoleChange(user.id, e.target.value)
+                        }
+                        className={`font-bold text-xs rounded-lg px-3 py-2 border-2 outline-none transition-colors cursor-pointer
+                          ${user.role === 'admin' || user.role === 'auditor' ? 'bg-purple-50 text-purple-700 border-purple-200 focus:border-purple-500' : ''}
+                          ${user.role === 'doctor' ? 'bg-teal-50 text-teal-700 border-teal-200 focus:border-teal-500' : ''}
+                          ${user.role === 'student' ? 'bg-slate-100 text-slate-600 border-slate-200 focus:border-slate-400' : ''}
+                        `}
+                      >
+                        <option value="student">Estudiante (Móvil)</option>
+                        <option value="doctor">Doctor (Escritorio)</option>
+                        <option value="admin">Administrador (Web)</option>
+                        <option value="auditor">Auditor (Web)</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </main>
     </div>
   );
-};
+}

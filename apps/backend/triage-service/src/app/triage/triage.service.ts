@@ -1,64 +1,52 @@
-import { Injectable } from '@nestjs/common';
+// Location: apps/backend/triage-service/src/app/triage/triage.service.ts
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { TriageEntity } from './entities/triage.entity';
 import { CreateTriageDto } from './dto/create-triage.dto';
-import { UpdateTriageDto } from './dto/update-triage.dto';
-import { Triage, RiskLevel } from './entities/triage.entity';
 
 @Injectable()
 export class TriageService {
   constructor(
-    @InjectRepository(Triage)
-    private readonly triageRepository: Repository<Triage>,
+    @InjectRepository(TriageEntity)
+    private readonly triageRepository: Repository<TriageEntity>,
   ) {}
 
-  async create(studentId: string, createTriageDto: CreateTriageDto) {
-    let totalScore = 0;
-    const answers = createTriageDto.answers;
-
-    for (const key in answers) {
-      if (typeof answers[key] === 'number') {
-        totalScore += answers[key];
-      }
-    }
-
-    let risk = RiskLevel.LOW;
-    if (totalScore >= 20) risk = RiskLevel.CRITICAL;
-    else if (totalScore >= 15) risk = RiskLevel.HIGH;
-    else if (totalScore >= 10) risk = RiskLevel.MODERATE;
-
-    const newTriage = this.triageRepository.create({
-      studentId: studentId, // 🔥 Lo usamos directamente aquí
-      answers: answers,
-      score: totalScore,
-      riskLevel: risk,
-    });
-
+  /**
+   * Creates a new emergency triage ticket from the mobile application.
+   */
+  async create(createTriageDto: CreateTriageDto): Promise<TriageEntity> {
+    const newTriage = this.triageRepository.create(createTriageDto);
     return await this.triageRepository.save(newTriage);
   }
 
-  async findAll() {
+  /**
+   * Retrieves all active (pending) cases for the Desktop Clinical Dashboard.
+   * Ordered by creation date to calculate waiting time properly.
+   */
+  async findAllActive(): Promise<TriageEntity[]> {
     return await this.triageRepository.find({
-      order: { createdAt: 'DESC' },
+      where: { caseStatus: 'Pendiente' },
+      order: { createdAt: 'ASC' },
     });
   }
 
-  async findOne(id: string) {
-    return await this.triageRepository.findOne({ where: { id } });
-  }
+  /**
+   * Updates the status of a triage ticket when a clinical psychologist assigns it.
+   */
+  async updateStatus(
+    id: string,
+    newStatus: 'Pendiente' | 'En Proceso' | 'Resuelto',
+  ): Promise<TriageEntity> {
+    const triage = await this.triageRepository.findOne({ where: { id } });
 
-  async findByStudent(studentId: string) {
-    return await this.triageRepository.find({
-      where: { studentId },
-      order: { createdAt: 'DESC' },
-    });
-  }
+    if (!triage) {
+      throw new NotFoundException(
+        `Triage record with ID ${id} not found in the system.`,
+      );
+    }
 
-  async update(id: string, updateTriageDto: UpdateTriageDto) {
-    return `This action updates a #${id} triage`;
-  }
-
-  async remove(id: string) {
-    return await this.triageRepository.delete(id);
+    triage.caseStatus = newStatus;
+    return await this.triageRepository.save(triage);
   }
 }

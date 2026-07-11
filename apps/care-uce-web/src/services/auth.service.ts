@@ -1,161 +1,88 @@
-import axios, { AxiosInstance } from 'axios';
+// Location: apps/care-uce-web/src/services/auth.service.ts
+import axios from 'axios';
 
-// 🌍 GESTIÓN DE ENTORNOS (Descomenta el que vayas a usar)
-const API_BASE_URL = 'http://192.168.1.2:3000/api'; // Local
-//const API_BASE_URL = 'http://caruceqa.programacionwebuce.net/api'; // QA
-// const API_BASE_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
-
-export interface AuthResponse {
-  access_token: string;
-  user: {
-    id: string;
-    email: string;
-    role: string;
-  };
-}
-
-export interface User {
-  id?: string;
+type RegisterFormData = {
+  fullName?: string;
+  nombre?: string;
+  idCard?: string;
+  cedula?: string;
   email: string;
-  role?: string;
-}
+  password: string;
+  confirmPassword?: string;
+};
 
+//const API_URL = import.meta.env.VITE_API_URL || 'http://100.28.235.67/api';
+//const API_URL = import.meta.env.VITE_API_URL || 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api';
+
+const API_URL = `${import.meta.env.VITE_BASE_IP}:3000/api`;
 class AuthService {
-  private api: AxiosInstance;
-
-  constructor() {
-    this.api = axios.create({
-      baseURL: API_BASE_URL,
-      timeout: 10000,
-    });
-
-    // Interceptor para agregar el token en cada request
-    this.api.interceptors.request.use(
-      async (config) => {
-        try {
-          const token = localStorage.getItem('auth_token'); // 🌐 Web usa localStorage
-          if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-          }
-        } catch (error) {
-          console.error('Error al leer token:', error);
-        }
-        return config;
-      },
-      (error) => Promise.reject(error),
-    );
-
-    this.api.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        // Obtenemos la ruta actual
-        const currentPath = window.location.pathname;
-
-        if (error.response?.status === 401) {
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user');
-
-          // SOLO redirigimos y recargamos si NO estamos ya en la pantalla de Auth
-          if (currentPath !== '/auth' && currentPath !== '/login') {
-            window.location.href = '/auth';
-          }
-        }
-        return Promise.reject(error);
-      },
-    );
-  }
-
-  // Registro de nuevo usuario
-  async register(
+  async login(
     email: string,
     password: string,
-    role: string = 'student',
-  ): Promise<AuthResponse> {
+  ): Promise<Record<string, unknown>> {
     try {
-      const response = await this.api.post<AuthResponse>('/auth/register', {
+      const response = await axios.post(`${API_URL}/auth/login`, {
         email,
         password,
-        role,
       });
+
+      const allowedRoles = ['admin', 'auditor'];
+      if (!allowedRoles.includes(response.data.user.role)) {
+        throw new Error(
+          'Acceso Denegado: Solo personal administrativo puede ingresar.',
+        );
+      }
+
       if (response.data.access_token) {
         localStorage.setItem('auth_token', response.data.access_token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
-      return response.data;
-    } catch (error: any) {
-      throw {
-        message: error.response?.data?.message || 'Error en registro',
-        status: error.response?.status || 500,
-      };
-    }
-  }
-
-  // Login
-  async login(email: string, password: string): Promise<AuthResponse> {
-    try {
-      const response = await this.api.post<AuthResponse>('/auth/login', {
-        email,
-        password,
-      });
-      if (response.data.access_token) {
-        localStorage.setItem('auth_token', response.data.access_token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+      return response.data as Record<string, unknown>;
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const msgs = error.response?.data?.message;
+        throw new Error(
+          Array.isArray(msgs)
+            ? msgs.join(' - ')
+            : msgs || 'Credenciales inválidas',
+        );
       }
-      return response.data;
-    } catch (error: any) {
-      throw {
-        message: error.response?.data?.message || 'Credenciales inválidas',
-        status: error.response?.status || 500,
+      throw new Error((error as Error).message || 'Error de conexión');
+    }
+  }
+
+  // Se añade el register respetando el DTO y mandando el header 'web'
+  async register(formData: RegisterFormData): Promise<Record<string, unknown>> {
+    try {
+      const payload = {
+        fullName: formData.fullName || formData.nombre || 'Administrador Web',
+        idCard: formData.idCard || formData.cedula || '0000000000',
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword || formData.password,
       };
+
+      const response = await axios.post(`${API_URL}/auth/register`, payload, {
+        headers: { 'x-client-origin': 'web' }, // Esto le dice al backend que es Auditor/Admin
+      });
+
+      return response.data as Record<string, unknown>;
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const msgs = error.response?.data?.message;
+        throw new Error(
+          Array.isArray(msgs)
+            ? msgs.join('\n')
+            : msgs || 'Error al registrar administrador',
+        );
+      }
+      throw error;
     }
   }
 
-  // Obtener perfil del usuario
-  async getProfile(): Promise<User> {
-    try {
-      const response = await this.api.get<{ user: User }>('/auth/profile');
-      return response.data.user;
-    } catch (error: any) {
-      throw {
-        message: error.response?.data?.message || 'Error al obtener perfil',
-        status: error.response?.status || 500,
-      };
-    }
-  }
-
-  // Logout
-  async logout(): Promise<void> {
-    try {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user');
-    } catch (error) {
-      console.error('Error al logout:', error);
-    }
-  }
-
-  // Obtener token guardado (Se mantiene async para igualar la firma con mobile)
-  async getToken(): Promise<string | null> {
-    try {
-      return localStorage.getItem('auth_token');
-    } catch (error) {
-      return null;
-    }
-  }
-
-  // Obtener usuario guardado
-  async getStoredUser(): Promise<User | null> {
-    try {
-      const user = localStorage.getItem('user');
-      return user ? JSON.parse(user) : null;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  // Validar si hay sesión activa
-  async isAuthenticated(): Promise<boolean> {
-    const token = await this.getToken();
-    return !!token;
+  logout(): void {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
   }
 }
 

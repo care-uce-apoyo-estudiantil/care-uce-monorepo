@@ -1,38 +1,38 @@
+// Location: apps/backend/triage-service/src/app/triage/entities/triage.entity.ts
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
+  PrimaryGeneratedColumn,
   CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
-export enum RiskLevel {
-  LOW = 'LOW',
-  MODERATE = 'MODERATE',
-  HIGH = 'HIGH',
-  CRITICAL = 'CRITICAL',
-}
-
-@Entity('triage_assessments')
-export class Triage {
+@Entity('triage_cases')
+export class TriageEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column()
-  studentId!: string;
+  @Column({ type: 'varchar', length: 150 })
+  patientName!: string;
 
-  @Column('int')
-  score!: number;
+  @Column({ type: 'int' })
+  patientAge!: number;
 
-  @Column({
-    type: 'enum',
-    enum: RiskLevel,
-    default: RiskLevel.LOW,
-  })
-  riskLevel!: RiskLevel;
+  @Column({ type: 'varchar', length: 100 })
+  academicMajor!: string;
 
-  @Column('jsonb')
-  answers!: Record<string, any>;
+  @Column({ type: 'text' })
+  crisisReason!: string;
 
-  @CreateDateColumn()
+  @Column({ type: 'varchar', length: 20, default: 'Media' })
+  priorityLevel!: 'Alta' | 'Media' | 'Baja';
+
+  @Column({ type: 'varchar', length: 20, default: 'Pendiente' })
+  caseStatus!: 'Pendiente' | 'En Proceso' | 'Resuelto';
+
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt!: Date;
+
+  @UpdateDateColumn({ type: 'timestamp' })
+  updatedAt!: Date;
 }
