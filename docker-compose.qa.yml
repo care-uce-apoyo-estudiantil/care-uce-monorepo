@@ -24,6 +24,18 @@ services:
     networks:
       - careuce-qa-network
 
+  # 🔥 NUEVO: BASE DE DATOS DE CITAS (APPOINTMENT SERVICE)
+  appointment-db:
+    image: postgres:15-alpine
+    container_name: careuce-appointment-db-qa
+    restart: always
+    environment:
+      POSTGRES_USER: ${APPOINTMENT_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${APPOINTMENT_DB_PASSWORD:-root}
+      POSTGRES_DB: ${APPOINTMENT_DB_NAME:-appointment_db}
+    networks:
+      - careuce-qa-network
+
   # 🔥 NUEVO: BASE DE DATOS DOCUMENTAL
   mongodb:
     image: mongo:6.0
@@ -104,6 +116,18 @@ services:
     environment:
       - KAFKA_BROKER=kafka:9092
       - MONGO_URI=mongodb://mongodb:27017/clinical_db
+    env_file:
+      - .env
+    networks:
+      - careuce-qa-network
+
+  # 🔥 NUEVO: MICROSERVICIO DE CITAS
+  appointment-service:
+    image: ${DOCKER_USERNAME}/careuce-appointment:qa
+    container_name: careuce-appointment-service-qa
+    restart: always
+    depends_on:
+      - appointment-db
     env_file:
       - .env
     networks:

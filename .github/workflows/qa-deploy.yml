@@ -7,52 +7,58 @@ on:
 
 jobs:
   ci-and-build:
-    name: 🏗️ Build & Push Image
+    name: Build & Push Image
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: ⚙️ Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'npm'
 
-      - name: 📦 Install dependencies
+      - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: 🐳 Log in to Docker Hub
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: 🚀 Build and Push Auth Service
+      - name: Build and Push Auth Service
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-auth:qa -f apps/backend/auth-service/Dockerfile .
           docker push ${{ secrets.DOCKER_USERNAME }}/careuce-auth:qa
 
-      - name: 🚀 Build and Push Triage Service
+      - name: Build and Push Triage Service
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-triage:qa -f apps/backend/triage-service/Dockerfile .
           docker push ${{ secrets.DOCKER_USERNAME }}/careuce-triage:qa
 
-      # 🔥 NUEVO: Construir y subir el Clinical Service
-      - name: 🚀 Build and Push Clinical Service
+      #  NUEVO: Construir y subir el Clinical Service
+      - name: Build and Push Clinical Service
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-clinical:qa -f apps/backend/clinical-service/Dockerfile .
           docker push ${{ secrets.DOCKER_USERNAME }}/careuce-clinical:qa
 
+      #  NUEVO: Construir y subir el Appointment Service
+      - name: 🚀 Build and Push Appointment Service
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-appointment:qa -f apps/backend/appointment-service/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/careuce-appointment:qa
+
   deploy:
-    name: 🚀 Deploy to AWS QA
+    name: Deploy to AWS QA
     needs: ci-and-build
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout repository for Compose file
+      - name: Checkout repository for Compose file
         uses: actions/checkout@v4
 
-      - name: 🔐 Configurar llave SSH Nativa
+      - name: Configurar llave SSH Nativa
         run: |
           mkdir -p ~/.ssh
           cat << 'KEYEOF' > ~/.ssh/aws_key.pem
@@ -60,16 +66,16 @@ jobs:
           KEYEOF
           chmod 600 ~/.ssh/aws_key.pem
 
-      - name: 📂 Copiar docker-compose y Nginx a EC2 (Native SCP)
+      - name: Copiar docker-compose y Nginx a EC2 (Native SCP)
         run: |
           scp -r -o StrictHostKeyChecking=no -i ~/.ssh/aws_key.pem docker-compose.qa.yml nginx/ ubuntu@${{ secrets.QA_EC2_IP }}:/home/ubuntu/
 
-      - name: 🌐 Ejecutar comandos remotos (Native SSH)
+      - name: Ejecutar comandos remotos (Native SSH)
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/aws_key.pem ubuntu@${{ secrets.QA_EC2_IP }} << 'EOF'
           set -e 
 
-          echo "🚀 Conectado exitosamente a la EC2 de AWS QA de forma nativa"
+          echo " Conectado exitosamente a la EC2 de AWS QA de forma nativa"
 
           sudo apt-get update -y
           sudo apt-get install -y docker-compose-v2
@@ -83,18 +89,18 @@ jobs:
 
           cd /home/ubuntu
 
-          echo "🛑 Apagando contenedores actuales para liberar sus imágenes..."
+          echo " Apagando contenedores actuales para liberar sus imágenes..."
           sudo docker compose -f docker-compose.qa.yml down || true
 
-          echo "🗑️ Borrando por completo imágenes y caché viejas..."
+          echo " Borrando por completo imágenes y caché viejas..."
           sudo docker system prune -af --volumes
 
-          echo "🔥 Levantando Nueva Infraestructura con Kafka y MongoDB..."
+          echo " Levantando Nueva Infraestructura con Kafka y MongoDB..."
           cd /home/ubuntu
           sudo docker compose -f docker-compose.qa.yml pull
           sudo docker compose -f docker-compose.qa.yml up -d
 
-          echo "⏳ Esperando a que el contenedor de Nginx inicie por completo..."
+          echo " Esperando a que el contenedor de Nginx inicie por completo..."
           sleep 3
 
           sudo docker exec careuce-api-gateway-qa nginx -s reload
