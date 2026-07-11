@@ -3,7 +3,7 @@ name: QA Deployment Pipeline
 on:
   push:
     branches:
-      - feat/deploySistem
+      - QA
 
 jobs:
   ci-and-build:
