@@ -5,15 +5,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Fix TS error in React Native environment where `process` isn't defined in types
 declare const process: { env?: { EXPO_PUBLIC_API_URL?: string } } | undefined;
 
-// 🌍 IPs de tus microservicios (ajústalas a tu entorno real si es necesario)
-//const APPOINTMENT_API_URL = 'http://100.28.235.67/api';
-//const APPOINTMENT_API_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api';
-
-//const AUTH_API_URL = 'http://100.28.235.67/api';
-//const AUTH_API_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api';
-
-const AUTH_API_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}:3000/api`; // Local (Your physical IP)
-const APPOINTMENT_API_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}:3002/api`; // Local (Your physical IP)
+// 🌍 A través del Gateway (Nginx enruta /api/auth y /api/appointments a cada
+// microservicio internamente), sin puertos directos.
+const AUTH_API_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}/api`;
+const APPOINTMENT_API_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}/api`;
 
 export interface Doctor {
   id: string;

@@ -1,9 +1,8 @@
 import axios from 'axios';
 
-const APPOINTMENT_API_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}:3002/api`;
-
-//const APPOINTMENT_API_URL = 'http://100.28.235.67/api';
-//const APPOINTMENT_API_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api';
+// 🌍 A través del Gateway (Nginx enruta /api/appointments -> appointment-service internamente)
+// FIX: usaba `process.env.EXPO_PUBLIC_API_URL` (variable de Expo/mobile) en vez de la de Vite/Electron.
+const APPOINTMENT_API_URL = `${import.meta.env.VITE_BASE_IP ?? 'http://localhost'}/api`;
 
 export interface AppointmentRecord {
   id: string;
