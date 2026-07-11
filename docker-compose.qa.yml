@@ -76,6 +76,8 @@ services:
     depends_on:
       - auth-service
       - triage-service
+      - clinical-service
+      - appointment-service
     networks:
       - careuce-qa-network
 
