@@ -3,10 +3,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 declare const process: { env: { EXPO_PUBLIC_API_URL?: string } } | undefined;
 
-// 🌍 ENVIRONMENT MANAGEMENT (Uncomment the one you are going to use)
-const API_BASE_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}:3000/api`; // Local (Your physical IP)
-//const API_BASE_URL = 'http://100.28.235.67/api';
-// const API_BASE_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
+// 🌍 El móvil siempre necesita una URL absoluta al Gateway (IP de la EC2 de QA
+// o DNS del ALB de PROD), sin puerto: Nginx expone todo en el puerto 80 y
+// enruta /api/auth -> auth-service internamente.
+const API_BASE_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}/api`;
 export interface AuthResponse {
   access_token: string;
   user: {
@@ -162,20 +162,10 @@ class AuthService {
     }
   }
 
-  async getProfile(): Promise<User> {
-    try {
-      const response = await this.api.get<{ user: User }>('/auth/profile');
-      return this.enrichUser(response.data.user);
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        throw {
-          message: error.response?.data?.message || 'Error',
-          status: error.response?.status || 500,
-        };
-      }
-      throw { message: 'Unexpected server error', status: 500 };
-    }
-  }
+  // NOTA: se removió `getProfile()` porque llamaba a `GET /auth/profile`,
+  // un endpoint que no existe en auth-service (habría devuelto 404 siempre)
+  // y que además no se usaba en ningún lugar de la app. El perfil se lee
+  // del usuario cacheado en `getStoredUser()`, que se guarda en login/register.
 
   async logout(): Promise<void> {
     await AsyncStorage.removeItem('auth_token');
