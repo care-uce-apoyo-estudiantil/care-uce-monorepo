@@ -11,10 +11,11 @@ type RegisterFormData = {
   confirmPassword?: string;
 };
 
-//const API_URL = import.meta.env.VITE_API_URL || 'http://100.28.235.67/api';
-//const API_URL = import.meta.env.VITE_API_URL || 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api';
-
-const API_URL = `${import.meta.env.VITE_BASE_IP}:3000/api`;
+// 🌍 El Web se sirve desde el mismo Nginx Gateway que expone /api/*.
+// Por defecto usamos una ruta relativa (mismo origen) para que funcione
+// automáticamente tanto en QA como en PROD sin necesitar variables de entorno.
+// VITE_API_URL solo se usa para apuntar a un gateway remoto en desarrollo local.
+const API_URL = `${import.meta.env.VITE_API_URL ?? ''}/api`;
 class AuthService {
   async login(
     email: string,

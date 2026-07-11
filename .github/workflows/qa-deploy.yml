@@ -3,7 +3,7 @@ name: QA Deployment Pipeline
 on:
   push:
     branches:
-      - QA
+      - careuce-web-deploy
 
 jobs:
   ci-and-build:
@@ -49,6 +49,14 @@ jobs:
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-appointment:qa -f apps/backend/appointment-service/Dockerfile .
           docker push ${{ secrets.DOCKER_USERNAME }}/careuce-appointment:qa
+
+      # 🔥 NUEVO: Construir y subir el Frontend Web (React SPA vía Nginx)
+      # No necesita build-args: en producción usa rutas relativas (/api) porque
+      # se sirve desde el mismo Gateway Nginx que expone la API.
+      - name: Build and Push Web Frontend
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-web:qa -f apps/care-uce-web/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/careuce-web:qa
 
   deploy:
     name: Deploy to AWS QA

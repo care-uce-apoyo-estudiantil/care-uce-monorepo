@@ -1,11 +1,10 @@
 // Location: apps/care-uce-desktop/src/services/auth.service.ts
 import axios from 'axios';
 
-// 🌍 ENVIRONMENT MANAGEMENT (Uncomment the one you are going to use)
-// 🌍 La auth corre en el puerto 3000
-const AUTH_API_URL = `${import.meta.env.VITE_BASE_IP}:3000/api`; // Local (Your physical IP)
-//const AUTH_API_URL = 'http://100.28.235.67/api';
-// const AUTH_API_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
+// 🌍 El Desktop (Electron) siempre necesita una URL absoluta al Gateway
+// (host de la EC2 de QA o el DNS del ALB de PROD), sin puerto: Nginx expone
+// todo en el puerto 80 y enruta /api/auth -> auth-service internamente.
+const AUTH_API_URL = `${import.meta.env.VITE_BASE_IP ?? 'http://localhost'}/api`;
 
 class AuthService {
   async login(
