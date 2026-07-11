@@ -2,7 +2,8 @@
 import axios from 'axios';
 import { PatientRecord } from '../types/clinical';
 
-const TRIAGE_API_URL = `${import.meta.env.VITE_BASE_IP}:3001/api`;
+// 🌍 A través del Gateway (Nginx enruta /api/triage -> triage-service internamente)
+const TRIAGE_API_URL = `${import.meta.env.VITE_BASE_IP ?? 'http://localhost'}/api`;
 
 class TriageService {
   async getActiveCases(): Promise<PatientRecord[]> {

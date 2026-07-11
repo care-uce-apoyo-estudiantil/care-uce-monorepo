@@ -64,6 +64,14 @@ services:
     networks:
       - careuce-qa-network
 
+  # 🔥 NUEVO: FRONTEND WEB (React SPA servido por Nginx)
+  web:
+    image: ${DOCKER_USERNAME}/careuce-web:qa
+    container_name: careuce-web-qa
+    restart: always
+    networks:
+      - careuce-qa-network
+
   # --- EL API GATEWAY ---
   api-gateway:
     image: nginx:alpine
@@ -76,6 +84,9 @@ services:
     depends_on:
       - auth-service
       - triage-service
+      - clinical-service
+      - appointment-service
+      - web
     networks:
       - careuce-qa-network
 
