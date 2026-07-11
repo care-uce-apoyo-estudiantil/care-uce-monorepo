@@ -3,7 +3,7 @@ name: QA Deployment Pipeline
 on:
   push:
     branches:
-      - careuce-web-deploy
+      - QA
 
 jobs:
   ci-and-build:
