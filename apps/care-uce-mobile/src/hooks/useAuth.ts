@@ -1,5 +1,5 @@
+// Location: apps/care-uce-mobile/src/hooks/useAuth.ts
 import { useState, useEffect, useCallback } from 'react';
-// 1. Removed unused AuthResponse and imported RegisterPayload
 import authService, { User, RegisterPayload } from '../services/authService';
 
 export interface UseAuthReturn {
@@ -8,7 +8,6 @@ export interface UseAuthReturn {
   user: User | null;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  // 2. Updated register signature to accept the complete payload
   register: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -20,17 +19,15 @@ export const useAuth = (): UseAuthReturn => {
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Check if there is an active session on startup
+  // Check active session on initialization
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        // authService may not expose isAuthenticated; derive auth status from stored user
         const storedUser = await authService.getStoredUser();
         const isAuth = !!storedUser;
         setIsAuthenticated(isAuth);
         if (isAuth) setUser(storedUser);
       } catch (err: unknown) {
-        // ESLint fix: replaced any with unknown
         console.error('Error checking auth status:', err);
       }
     };
@@ -44,11 +41,11 @@ export const useAuth = (): UseAuthReturn => {
 
     try {
       const response = await authService.login(email, password);
-      setUser(response.user);
+      // Ensure the returned user is enriched exactly like the stored version
+      const completeUser = await authService.getStoredUser();
+      setUser(completeUser || response.user);
       setIsAuthenticated(true);
     } catch (err: unknown) {
-      // ESLint fix: replaced any with unknown
-      // Safely extract the error message
       const errorMessage =
         (err as { message?: string })?.message || 'Error during login';
       setError(errorMessage);
@@ -59,23 +56,18 @@ export const useAuth = (): UseAuthReturn => {
     }
   }, []);
 
-  // 3. Updated function to receive the complete payload
   const register = useCallback(async (payload: RegisterPayload) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Send the payload to the service
       const response = await authService.register(payload);
-
-      // If your backend doesn't return the user object immediately upon registration,
-      // you might need to adjust this depending on your API design.
       if (response.user) {
-        setUser(response.user);
+        const completeUser = await authService.getStoredUser();
+        setUser(completeUser || response.user);
         setIsAuthenticated(true);
       }
     } catch (err: unknown) {
-      // ESLint fix: replaced any with unknown
       const errorMessage =
         (err as { message?: string })?.message || 'Error during registration';
       setError(errorMessage);
@@ -94,7 +86,6 @@ export const useAuth = (): UseAuthReturn => {
       setIsAuthenticated(false);
       setError(null);
     } catch (err: unknown) {
-      // ESLint fix: replaced any with unknown
       console.error(err);
       setError('Error during logout');
     } finally {

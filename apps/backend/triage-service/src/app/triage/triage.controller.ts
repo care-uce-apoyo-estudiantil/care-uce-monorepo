@@ -10,7 +10,7 @@ export class TriageController {
 
   /**
    * POST /api/triage
-   * Endpoint used by the Mobile App (Students) to trigger an emergency.
+   * Endpoint utilized by the Mobile App (Students) to trigger an emergency panic alert.
    */
   @Post()
   async create(
@@ -21,7 +21,7 @@ export class TriageController {
 
   /**
    * GET /api/triage/active
-   * Endpoint used by the Desktop App (Psychologists) to populate the Inbox.
+   * Endpoint utilized by the Desktop App (Psychologists) to populate the real-time inbox.
    */
   @Get('active')
   async findAllActive(): Promise<TriageEntity[]> {
@@ -30,7 +30,7 @@ export class TriageController {
 
   /**
    * PATCH /api/triage/:id/status
-   * Endpoint used by the Desktop App to accept or resolve a case.
+   * Endpoint utilized by the Desktop App to accept or resolve a clinical emergency case.
    */
   @Patch(':id/status')
   async updateStatus(

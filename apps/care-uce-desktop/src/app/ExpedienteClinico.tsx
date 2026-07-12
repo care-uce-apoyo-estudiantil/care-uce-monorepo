@@ -3,55 +3,59 @@ import React, { useState } from 'react';
 import {
   ArrowLeft,
   Save,
-  User,
-  Clock,
-  AlertTriangle,
   FileText,
-  CheckCircle,
-  Activity,
+  User,
+  AlertTriangle,
+  FileDown,
 } from 'lucide-react';
+import { PatientRecord } from '../types/clinical';
 import triageService from '../services/triage.service';
 
-interface PacienteProps {
-  id: string;
-  paciente: string;
-  edad: number;
-  carrera: string;
-  motivo: string;
-  prioridad: string;
-  tiempoEspera: string;
-}
-
-interface Props {
-  paciente: PacienteProps;
+interface ExpedienteProps {
+  paciente: PatientRecord;
   onVolver: () => void;
 }
 
-export const ExpedienteClinico: React.FC<Props> = ({ paciente, onVolver }) => {
-  const [notas, setNotas] = useState('');
+export const ExpedienteClinico: React.FC<ExpedienteProps> = ({
+  paciente,
+  onVolver,
+}) => {
+  const [formData, setFormData] = useState({
+    motivoConsulta: paciente.motivo || '',
+    sintomas: '',
+    diagnostico: '',
+    tratamiento: '',
+    nivelRiesgo: paciente.prioridad || 'Media',
+  });
+
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleFinalizarAtencion = async () => {
-    if (!notas.trim()) {
-      alert('Por favor, ingresa las notas clínicas antes de finalizar.');
-      return;
-    }
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsSaving(true);
     try {
-      // Mandamos la orden al backend para resolver el caso de emergencia
-      await triageService.resolveCase(paciente.id, notas);
-      // Al volver al Dashboard, se refrescará y el paciente ya no estará en la cola
-      onVolver();
-    } catch {
-      alert('Error al guardar el expediente.');
+      // 🔥 FIX: Actually resolve the case in the backend database
+      await triageService.resolveCase(paciente.id, formData.tratamiento);
+      alert(
+        'Expediente clínico guardado exitosamente. El caso ha sido cerrado.',
+      );
+      onVolver(); // Returns to Dashboard and clears from UI
+    } catch (error) {
+      console.error('Failed to save clinical record:', error);
+      alert('Error al guardar el expediente en la base de datos.');
+    } finally {
       setIsSaving(false);
     }
   };
 
+  const handleExportPDF = () => {
+    window.print();
+  };
+
   return (
-    <div className="flex flex-col h-full bg-slate-50">
-      <header className="bg-white px-8 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center gap-4">
+    <div className="flex flex-col h-full bg-slate-50 font-sans print:bg-white print:p-0">
+      <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 shadow-sm shrink-0 print:hidden">
+        <div className="flex items-center gap-6">
           <button
             onClick={onVolver}
             className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
@@ -59,90 +63,189 @@ export const ExpedienteClinico: React.FC<Props> = ({ paciente, onVolver }) => {
             <ArrowLeft size={24} />
           </button>
           <div>
-            <h2 className="text-2xl font-bold text-slate-800">
-              Atención de Crisis (Triage)
-            </h2>
-            <p className="text-sm text-slate-500 font-mono">
-              ID: {paciente.id.substring(0, 12)}...
+            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+              Expediente: {paciente.paciente}
+              <span
+                className={`text-xs px-2 py-1 rounded-md text-white font-bold uppercase tracking-wider ${
+                  paciente.prioridad === 'Alta' ? 'bg-red-500' : 'bg-amber-500'
+                }`}
+              >
+                Riesgo {paciente.prioridad}
+              </span>
+            </h1>
+            <p className="text-sm text-slate-500 font-medium">
+              ID Consulta: {paciente.id.substring(0, 8).toUpperCase()}
             </p>
           </div>
         </div>
-        <button
-          onClick={handleFinalizarAtencion}
-          disabled={isSaving}
-          className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold text-white shadow-sm transition-colors ${isSaving ? 'bg-slate-400' : 'bg-teal-600 hover:bg-teal-700'}`}
-        >
-          {isSaving ? (
-            <Activity className="animate-spin" size={20} />
-          ) : (
-            <Save size={20} />
-          )}
-          {isSaving ? 'Guardando...' : 'Finalizar y Guardar'}
-        </button>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportPDF}
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold transition-colors"
+          >
+            <FileDown size={18} /> Exportar PDF
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-bold shadow-md transition-all disabled:opacity-50"
+          >
+            <Save size={18} /> {isSaving ? 'Guardando...' : 'Guardar y Cerrar'}
+          </button>
+        </div>
       </header>
 
-      <div className="p-8 max-w-6xl mx-auto w-full grid grid-cols-3 gap-8 overflow-y-auto">
-        {/* Lado Izquierdo: Info del Paciente */}
-        <div className="col-span-1 space-y-6">
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <div className="w-16 h-16 bg-teal-100 text-teal-700 rounded-full flex items-center justify-center text-2xl font-bold mb-4 uppercase">
-              {paciente.paciente.charAt(0)}
+      <div className="flex-1 overflow-y-auto p-8 print:overflow-visible print:p-0">
+        <div className="max-w-5xl mx-auto space-y-6 print:max-w-full">
+          <div className="hidden print:flex items-center justify-between border-b-2 border-slate-800 pb-4 mb-6">
+            <div>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                UNIVERSIDAD CENTRAL DEL ECUADOR
+              </h2>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Ecosistema CareUCE — Historial Clínico Estudiantil
+              </p>
             </div>
-            <h3 className="text-xl font-bold text-slate-800 capitalize">
-              {paciente.paciente}
-            </h3>
-            <p className="text-slate-500 mb-6">{paciente.carrera}</p>
+            <div className="text-right">
+              <p className="text-sm font-bold text-slate-800">
+                Fecha: {new Date().toLocaleDateString()}
+              </p>
+              <p className="text-xs font-medium text-slate-500">
+                Documento Confidencial Protegido
+              </p>
+            </div>
+          </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 text-sm">
-                <User size={18} className="text-slate-400" />
-                <span className="text-slate-700 font-medium">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex items-start gap-6 print:border-none print:shadow-none print:p-0">
+            <div className="w-16 h-16 bg-teal-50 rounded-full flex items-center justify-center text-teal-600 shrink-0 print:hidden">
+              <User size={32} />
+            </div>
+            <div className="flex-1 grid grid-cols-3 gap-6">
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Nombre Completo
+                </p>
+                <p className="font-semibold text-slate-900 text-lg border-b border-slate-100 pb-1">
+                  {paciente.paciente}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Edad Calculada
+                </p>
+                <p className="font-semibold text-slate-900 text-lg border-b border-slate-100 pb-1">
                   {paciente.edad} años
-                </span>
+                </p>
               </div>
-              <div className="flex items-center gap-3 text-sm">
-                <Clock size={18} className="text-slate-400" />
-                <span className="text-slate-700 font-medium">
-                  Prioridad:{' '}
-                  <span className="text-red-600 font-bold">
-                    {paciente.prioridad}
-                  </span>
-                </span>
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Facultad / Carrera
+                </p>
+                <p
+                  className="font-semibold text-slate-900 text-lg border-b border-slate-100 pb-1 truncate"
+                  title={paciente.carrera}
+                >
+                  {paciente.carrera}
+                </p>
               </div>
-              <div className="flex items-start gap-3 text-sm bg-red-50 p-3 rounded-lg border border-red-100">
-                <AlertTriangle
-                  size={18}
-                  className="text-red-500 shrink-0 mt-0.5"
-                />
-                <span className="text-red-700 font-medium leading-relaxed">
-                  Motivo: {paciente.motivo}
-                </span>
+              <div className="col-span-3 pt-4 print:pt-2">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <AlertTriangle
+                    size={14}
+                    className="text-amber-500 print:hidden"
+                  />{' '}
+                  Motivo de la Alerta de Triage
+                </p>
+                <p className="font-semibold text-slate-800 italic text-md bg-amber-50 p-3 rounded-lg border border-amber-100 print:bg-slate-50 print:border-slate-200">
+                  "{paciente.motivo}"
+                </p>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Lado Derecho: Formulario Clínico */}
-        <div className="col-span-2">
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-full flex flex-col">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-              <FileText size={20} className="text-teal-600" /> Notas de
-              Evolución / Contención
-            </h3>
-            <textarea
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-              placeholder="Redacte aquí la evaluación psicológica, estado mental del paciente, acciones tomadas para la contención emocional y las recomendaciones de seguimiento..."
-              className="w-full flex-1 min-h-[350px] p-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none resize-none text-slate-700 leading-relaxed text-base"
-            ></textarea>
-            <div className="mt-6 bg-blue-50 text-blue-800 p-4 rounded-lg flex items-start gap-3 text-sm border border-blue-100">
-              <CheckCircle size={20} className="shrink-0 text-blue-600" />
-              <p>
-                Al hacer clic en "Finalizar y Guardar", este caso se marcará
-                como <strong>Resuelto</strong> en la base de datos y saldrá de
-                la bandeja de emergencias activas. Asegúrese de que el
-                estudiante se encuentre estabilizado.
-              </p>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden print:border-none print:shadow-none">
+            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center gap-2 print:bg-white print:px-0 print:border-b-2 print:border-slate-300">
+              <FileText className="text-slate-500 print:hidden" size={20} />
+              <h2 className="font-bold text-slate-800 uppercase tracking-wide text-sm">
+                Anotaciones Médicas de Evolución
+              </h2>
+            </div>
+
+            <div className="p-6 space-y-6 print:px-0 print:pt-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Síntomas y Observaciones Iniciales
+                </label>
+                <textarea
+                  rows={4}
+                  value={formData.sintomas}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sintomas: e.target.value })
+                  }
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none print:bg-white print:border-none print:p-0 print:text-slate-800 font-serif"
+                  placeholder="[Haga clic aquí para transcribir los síntomas de la evaluación clínica...]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-6 print:grid-cols-1 print:gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                    Impresión Diagnóstica (CIE-10 / DSM-V)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.diagnostico}
+                    onChange={(e) =>
+                      setFormData({ ...formData, diagnostico: e.target.value })
+                    }
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none print:bg-white print:border-none print:p-0 print:font-serif"
+                    placeholder="Ej. F41.1 Trastorno de ansiedad generalizada"
+                  />
+                </div>
+                <div className="print:hidden">
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                    Re-evaluación del Nivel de Riesgo
+                  </label>
+                  <select
+                    value={formData.nivelRiesgo}
+                    // 🔥 FIX: Strict casting to avoid ESLint 'any' rule failure
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        nivelRiesgo: e.target.value as
+                          | 'Alta'
+                          | 'Media'
+                          | 'Baja',
+                      })
+                    }
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                  >
+                    <option value="Alta">
+                      Riesgo Alto (Crisis Activa / Derivación Inmediata)
+                    </option>
+                    <option value="Media">
+                      Riesgo Medio (Seguimiento preventivo)
+                    </option>
+                    <option value="Baja">Riesgo Bajo (Consulta regular)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Plan de Tratamiento / Derivación
+                </label>
+                <textarea
+                  rows={4}
+                  value={formData.tratamiento}
+                  onChange={(e) =>
+                    setFormData({ ...formData, tratamiento: e.target.value })
+                  }
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none print:bg-white print:border-none print:p-0 print:font-serif"
+                  placeholder="Defina las acciones inmediatas de soporte terapéutico..."
+                />
+              </div>
             </div>
           </div>
         </div>

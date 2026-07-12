@@ -13,7 +13,7 @@ export class TriageService {
   ) {}
 
   /**
-   * Creates a new emergency triage ticket from the mobile application.
+   * Creates a new emergency triage ticket triggered from the mobile application.
    */
   async create(createTriageDto: CreateTriageDto): Promise<TriageEntity> {
     const newTriage = this.triageRepository.create(createTriageDto);
@@ -22,7 +22,7 @@ export class TriageService {
 
   /**
    * Retrieves all active (pending) cases for the Desktop Clinical Dashboard.
-   * Ordered by creation date to calculate waiting time properly.
+   * Ordered dynamically by creation date to calculate waiting time properly on the client side.
    */
   async findAllActive(): Promise<TriageEntity[]> {
     return await this.triageRepository.find({
@@ -32,7 +32,7 @@ export class TriageService {
   }
 
   /**
-   * Updates the status of a triage ticket when a clinical psychologist assigns it.
+   * Updates the status of a triage ticket when a clinical psychologist assigns or resolves it.
    */
   async updateStatus(
     id: string,
@@ -42,7 +42,7 @@ export class TriageService {
 
     if (!triage) {
       throw new NotFoundException(
-        `Triage record with ID ${id} not found in the system.`,
+        `Triage record with ID ${id} not found in the database.`,
       );
     }
 

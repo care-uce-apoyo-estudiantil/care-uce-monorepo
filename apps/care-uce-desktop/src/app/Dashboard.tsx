@@ -12,10 +12,25 @@ import authService from '../services/auth.service';
 import triageService from '../services/triage.service';
 import { DoctorSettings } from './components/DoctorSettings';
 
+const calculateWaitTime = (creationDate: string | undefined): string => {
+  if (!creationDate) return 'Unknown';
+
+  const startTime = new Date(creationDate).getTime();
+  const nowTime = new Date().getTime();
+  const differenceInMs = nowTime - startTime;
+
+  const minutes = Math.floor(differenceInMs / 60000);
+
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes} min ago`;
+
+  const hours = Math.floor(minutes / 60);
+  return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+};
+
 export function Dashboard() {
   const navigate = useNavigate();
 
-  // Navigation & Data State
   const [activeView, setActiveView] = useState<DashboardView>('triage');
   const [selectedPatient, setSelectedPatient] = useState<PatientRecord | null>(
     null,
@@ -23,11 +38,9 @@ export function Dashboard() {
   const [activeCases, setActiveCases] = useState<PatientRecord[]>([]);
   const [isLoadingCases, setIsLoadingCases] = useState(true);
 
-  // User Profile Name & Specialty State
   const [userName, setUserName] = useState('');
   const [userSpecialty, setUserSpecialty] = useState('Psicología Clínica');
 
-  // Load authenticated user data and listen for profile updates
   useEffect(() => {
     const loadUserData = () => {
       const userString = localStorage.getItem('user');
@@ -38,47 +51,38 @@ export function Dashboard() {
           specialty?: string;
         };
         setUserName(user.nombre || user.email || 'Doctor Profesional');
-
-        // Si el usuario tiene una especialidad guardada, la actualizamos en el Sidebar
-        if (user.specialty) {
-          setUserSpecialty(user.specialty);
-        }
+        if (user.specialty) setUserSpecialty(user.specialty);
       }
     };
 
-    loadUserData(); // Cargar al inicio
-
-    // Escuchar cuando DoctorSettings guarde una nueva especialidad
+    loadUserData();
     window.addEventListener('user-profile-updated', loadUserData);
     return () =>
       window.removeEventListener('user-profile-updated', loadUserData);
   }, []);
 
-  // Fetch Real Triage Cases from Backend
-  useEffect(() => {
-    const fetchCases = async () => {
-      try {
-        const cases = await triageService.getActiveCases();
-        setActiveCases(cases);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoadingCases(false);
-      }
-    };
+  const fetchCases = async () => {
+    try {
+      const cases = await triageService.getActiveCases();
+      setActiveCases(cases);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoadingCases(false);
+    }
+  };
 
-    fetchCases(); // Initial fetch
+  useEffect(() => {
+    fetchCases();
     const interval = setInterval(fetchCases, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // Secure sign out
   const handleLogout = () => {
     authService.logout();
     navigate('/login');
   };
 
-  // Internal component: Real-Time Triage Inbox
   const renderTriageInbox = () => (
     <div className="flex flex-col h-full bg-slate-50">
       <header className="h-16 bg-white shadow-sm flex items-center justify-between px-8 border-b shrink-0">
@@ -158,7 +162,7 @@ export function Dashboard() {
                     <p
                       className={`font-bold ${caso.prioridad === 'Alta' ? 'text-red-600' : 'text-yellow-600'}`}
                     >
-                      {caso.tiempoEspera}
+                      {calculateWaitTime(caso.fechaAtencion)}
                     </p>
                   </div>
                   <button
@@ -176,7 +180,6 @@ export function Dashboard() {
     </div>
   );
 
-  // Central Hub Router
   const renderMainContent = () => {
     if (selectedPatient) {
       const pacienteProp = {
@@ -188,10 +191,15 @@ export function Dashboard() {
         prioridad: selectedPatient.prioridad,
         tiempoEspera: selectedPatient.tiempoEspera ?? 'N/A',
       };
+
       return (
         <ExpedienteClinico
           paciente={pacienteProp}
-          onVolver={() => setSelectedPatient(null)}
+          // 🔥 FIX: Callback triggers immediate fetch to remove resolved case from UI
+          onVolver={async () => {
+            setSelectedPatient(null);
+            await fetchCases();
+          }}
         />
       );
     }
@@ -206,14 +214,14 @@ export function Dashboard() {
       case 'chat':
         return <CrisisChat />;
       case 'settings':
-        return <DoctorSettings />; // Panel de configuración
+        return <DoctorSettings />;
       default:
         return renderTriageInbox();
     }
   };
 
   return (
-    <div className="flex h-screen bg-slate-100 font-sans w-full overflow-hidden">
+    <div className="flex h-screen bg-slate-100 font-sans w-full overflow-hidden print:block print:h-auto print:bg-white print:overflow-visible">
       <Sidebar
         activeView={activeView}
         onViewChange={(view) => {
@@ -222,9 +230,9 @@ export function Dashboard() {
         }}
         onLogout={handleLogout}
         userName={userName}
-        specialtyLabel={userSpecialty} // 🔥 PASAMOS LA ESPECIALIDAD AL SIDEBAR
+        specialtyLabel={userSpecialty}
       />
-      <main className="flex-1 flex flex-col overflow-hidden relative">
+      <main className="flex-1 flex flex-col overflow-hidden relative print:block print:overflow-visible">
         {renderMainContent()}
       </main>
     </div>

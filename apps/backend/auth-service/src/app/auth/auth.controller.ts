@@ -25,20 +25,14 @@ export class AuthController {
     @Body() registerDto: RegisterDto,
     @Headers('x-client-origin') origin: string,
   ): Promise<unknown> {
-    // FIX: Changed to unknown to accept the Auto-Login JWT response
-    // Fallback to 'unknown' if header is not present
     return this.authService.register(registerDto, origin || 'unknown');
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Body() loginDto: LoginDto): Promise<unknown> {
-    // FIX: Also accepts the JWT response
-    // Pass the complete DTO to the service
     return this.authService.login(loginDto);
   }
-
-  // 👇 NEW ENDPOINTS FOR WEB ADMIN PANEL 👇
 
   @Get('users')
   async getAllUsers(): Promise<User[]> {
@@ -53,26 +47,45 @@ export class AuthController {
     return this.authService.updateRole(id, role);
   }
 
-  // Updated endpoint to filter doctors dynamically by specialty query parameter
   @Get('doctors')
   async getDoctors(@Query('specialty') specialty?: string): Promise<User[]> {
     const allUsers = await this.authService.getAllUsers();
     let doctors = allUsers.filter((user) => user.role === 'doctor');
 
     if (specialty) {
-      // Decode the URL encoded specialty and filter exactly
       const decodedSpecialty = decodeURIComponent(specialty);
       doctors = doctors.filter((doc) => doc.specialty === decodedSpecialty);
     }
     return doctors;
   }
 
-  // New endpoint allowing doctors from the Desktop app to update their clinical specialty
   @Patch('profile/specialty')
   @HttpCode(HttpStatus.OK)
   async updateSpecialty(
     @Body() body: { email: string; specialty: string },
   ): Promise<User> {
     return this.authService.updateUserSpecialty(body.email, body.specialty);
+  }
+
+  // 🔥 NEW: Endpoint for updating student profile data
+  @Patch('profile/student')
+  @HttpCode(HttpStatus.OK)
+  async updateStudentProfile(
+    @Body() body: { email: string; birthDate: string; major: string },
+  ): Promise<User> {
+    return this.authService.updateStudentProfile(
+      body.email,
+      body.birthDate,
+      body.major,
+    );
+  }
+
+  // 🔥 NEW: Endpoint for updating user password
+  @Patch('users/password')
+  @HttpCode(HttpStatus.OK)
+  async updatePassword(
+    @Body() body: { email: string; password: string },
+  ): Promise<{ message: string }> {
+    return this.authService.updatePassword(body.email, body.password);
   }
 }

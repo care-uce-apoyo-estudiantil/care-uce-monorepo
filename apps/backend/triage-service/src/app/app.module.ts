@@ -1,3 +1,4 @@
+// Location: apps/backend/triage-service/src/app/app.module.ts
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -22,7 +23,8 @@ import { TriageModule } from './triage/triage.module';
         password: configService.get<string>('TRIAGE_DB_PASSWORD') || 'root',
         database: configService.get<string>('TRIAGE_DB_NAME') || 'triage_db',
         autoLoadEntities: true,
-        synchronize: true, // Solo para desarrollo local/QA
+        // synchronize: true should only be used in local development or QA environments
+        synchronize: true,
       }),
       inject: [ConfigService],
     }),
@@ -33,6 +35,7 @@ import { TriageModule } from './triage/triage.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('*'); // 🔥 Activarlo para todo el Triage Service
+    // Enable logger middleware for all routes within the Triage Service
+    consumer.apply(LoggerMiddleware).forRoutes('*');
   }
 }

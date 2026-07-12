@@ -15,7 +15,7 @@ interface SidebarProps {
   activeView: DashboardView;
   onViewChange: (view: DashboardView) => void;
   userName: string;
-  specialtyLabel?: string; // 🔥 Nueva propiedad
+  specialtyLabel?: string;
   onLogout: () => void;
 }
 
@@ -23,7 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeView,
   onViewChange,
   userName,
-  specialtyLabel = 'Psicología Clínica', // Fallback
+  specialtyLabel = 'Psicología Clínica',
   onLogout,
 }) => {
   const getButtonClass = (view: DashboardView) => {
@@ -35,7 +35,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className="w-64 bg-slate-800 text-white flex flex-col shadow-xl z-10 shrink-0">
+    // 🔥 FIX: Added print:hidden to prevent the sidebar from rendering on the PDF
+    <aside className="w-64 bg-slate-800 text-white flex flex-col shadow-xl z-10 shrink-0 print:hidden">
       <div className="p-6 border-b border-slate-700 flex items-center gap-3">
         <Stethoscope className="text-teal-400" size={28} />
         <div>
@@ -88,7 +89,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <p className="text-sm font-bold truncate" title={userName}>
               {userName}
             </p>
-            {/* 🔥 MOSTRAMOS LA ESPECIALIDAD DINÁMICA AQUÍ */}
             <p
               className="text-xs text-slate-400 truncate"
               title={specialtyLabel}

@@ -1,12 +1,15 @@
+// Location: apps/care-uce-mobile/src/services/authService.ts
 import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Native environment check for API
 declare const process: { env: { EXPO_PUBLIC_API_URL?: string } } | undefined;
 
 // 🌍 ENVIRONMENT MANAGEMENT (Uncomment the one you are going to use)
 const API_BASE_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}:3000/api`; // Local (Your physical IP)
-//const API_BASE_URL = 'http://100.28.235.67/api';
+//const API_BASE_URL = 'http://100.28.235.67/api'; // QA
 // const API_BASE_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
+
 export interface AuthResponse {
   access_token: string;
   user: {
@@ -15,6 +18,8 @@ export interface AuthResponse {
     role: string;
     nombre: string;
     cedula: string;
+    birthDate?: string;
+    major?: string;
   };
 }
 
@@ -23,9 +28,12 @@ export interface User {
   email: string;
   role?: string;
   nombre?: string;
-  name?: string; // Alias inyectado para la UI
-  fullName?: string; // Alias inyectado para la UI
+  name?: string; // Injected alias for UI
+  fullName?: string; // Injected alias for UI
   cedula?: string;
+  // 🔥 FIX: Added missing properties to the User interface
+  birthDate?: string;
+  major?: string;
 }
 
 export interface RegisterPayload {
@@ -65,14 +73,16 @@ class AuthService {
       async (error) => {
         if (error.response?.status === 401) {
           await AsyncStorage.removeItem('auth_token');
-          await AsyncStorage.removeItem('user');
+          await AsyncStorage.removeItem('user_data'); // Updated key consistency
         }
         return Promise.reject(error);
       },
     );
   }
 
-  // 🔥 UTILIDAD: Enriquecemos el objeto para que la UI encuentre siempre el nombre
+  /**
+   * UTILITY: Enriches the user object so the UI can consistently resolve a display name
+   */
   private enrichUser(userData: Partial<User>): User {
     return {
       ...userData,
@@ -91,9 +101,8 @@ class AuthService {
 
       if (response.data.access_token) {
         await AsyncStorage.setItem('auth_token', response.data.access_token);
-        // Guardamos el usuario con los alias
         await AsyncStorage.setItem(
-          'user',
+          'user_data',
           JSON.stringify(this.enrichUser(response.data.user)),
         );
       }
@@ -124,16 +133,15 @@ class AuthService {
       if (response.data.user.role !== 'student') {
         throw {
           message:
-            'Acceso Denegado: Esta aplicación móvil es de uso exclusivo para Estudiantes.',
+            'Access Denied: This mobile application is exclusive for Students.',
           status: 403,
         };
       }
 
       if (response.data.access_token) {
         await AsyncStorage.setItem('auth_token', response.data.access_token);
-        // Guardamos el usuario con los alias
         await AsyncStorage.setItem(
-          'user',
+          'user_data',
           JSON.stringify(this.enrichUser(response.data.user)),
         );
       }
@@ -169,7 +177,7 @@ class AuthService {
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         throw {
-          message: error.response?.data?.message || 'Error',
+          message: error.response?.data?.message || 'Error fetching profile',
           status: error.response?.status || 500,
         };
       }
@@ -179,7 +187,7 @@ class AuthService {
 
   async logout(): Promise<void> {
     await AsyncStorage.removeItem('auth_token');
-    await AsyncStorage.removeItem('user');
+    await AsyncStorage.removeItem('user_data');
   }
 
   async getToken(): Promise<string | null> {
@@ -187,7 +195,7 @@ class AuthService {
   }
 
   async getStoredUser(): Promise<User | null> {
-    const user = await AsyncStorage.getItem('user');
+    const user = await AsyncStorage.getItem('user_data');
     return user ? JSON.parse(user) : null;
   }
 }

@@ -35,6 +35,14 @@ export class User {
   @Column({ nullable: true })
   specialty!: string;
 
+  // 🔥 NEW: Student's date of birth to calculate exact clinical age
+  @Column({ type: 'date', nullable: true })
+  birthDate!: string;
+
+  // 🔥 NEW: Student's university major/faculty
+  @Column({ nullable: true })
+  major!: string;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt!: Date;
 
