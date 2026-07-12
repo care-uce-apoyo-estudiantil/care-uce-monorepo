@@ -16,11 +16,11 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import authService from '../../services/authService';
 
 import { EmergencyButton } from '../../components/atoms/EmergencyButton';
 import { ActionCard } from '../../components/molecules/ActionCard';
 
-// System environment setup
 declare const process: { env?: { EXPO_PUBLIC_API_URL?: string } } | undefined;
 const TRIAGE_API_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}:3001/api`;
 
@@ -28,7 +28,6 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
 
-  // Custom Modal States for Android Compatibility
   const [isPanicModalVisible, setPanicModalVisible] = useState(false);
   const [panicReason, setPanicReason] = useState('');
   const [isSendingAlert, setIsSendingAlert] = useState(false);
@@ -41,22 +40,20 @@ export default function HomeScreen() {
     return 'Estudiante';
   };
 
-  // Precise chronological age calculator anchored to Project Defense Date (July 2026)
-  const calculateExactAge = (dobString?: string): number => {
-    if (!dobString) return 0;
-    const parts = dobString.split('-');
-    if (parts.length !== 3) return 0;
-
-    const birthYear = parseInt(parts[0], 10);
-    const birthMonth = parseInt(parts[1], 10);
-    const birthDay = parseInt(parts[2], 10);
-
-    // Evaluation anchors: July (Month 7), Day 12, Year 2026
-    let calculatedAge = 2026 - birthYear;
-    if (7 < birthMonth || (7 === birthMonth && 12 < birthDay)) {
-      calculatedAge--;
+  const calculateAge = (birthDateString?: string): number => {
+    if (!birthDateString) return 0;
+    try {
+      const birthDate = new Date(birthDateString);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age > 0 ? age : 0;
+    } catch {
+      return 0;
     }
-    return calculatedAge > 0 ? calculatedAge : 0;
   };
 
   const executePanicAlert = async () => {
@@ -70,38 +67,37 @@ export default function HomeScreen() {
 
     setIsSendingAlert(true);
     try {
-      // Direct pull from physical storage to guarantee fresh profile parameters
-      const rawStorage = await AsyncStorage.getItem('user');
-      const freshUser = rawStorage ? JSON.parse(rawStorage) : null;
+      const freshUser = await authService.getStoredUser();
 
       const finalBirthDate = freshUser?.birthDate || user?.birthDate;
       const finalMajor = freshUser?.major || user?.major;
-      const exactAge = calculateExactAge(finalBirthDate);
+      const exactAge = calculateAge(finalBirthDate);
 
       const fallbackName =
         freshUser?.nombre || getDisplayName() !== 'Estudiante'
           ? getDisplayName()
           : 'Estudiante No Registrado';
 
-      // Explicit Payload DTO strict mapping
       const payload = {
         patientName: fallbackName,
-        patientAge: exactAge > 0 ? exactAge : 22,
-        academicMajor: finalMajor || 'Facultad no especificada',
+        patientAge: exactAge > 0 ? exactAge : 20,
+        academicMajor: finalMajor || 'Carrera no especificada',
         crisisReason: panicReason,
         priorityLevel: 'Alta',
       };
 
-      await axios.post(`${TRIAGE_API_URL}/triage`, payload);
+      const response = await axios.post(`${TRIAGE_API_URL}/triage`, payload);
 
-      // Cleanup and redirect
+      // 🔥 CRITICAL FIX: Save the triage ID to memory so the chat can use it immediately
+      await AsyncStorage.setItem('active_triage_id', response.data.id);
+
       setPanicModalVisible(false);
       setPanicReason('');
       router.push('/(tabs)/crisis');
     } catch (error) {
       console.error('Failed to broadcast panic alert:', error);
       Alert.alert(
-        'Error de Conexión',
+        'Error de Red',
         'No se pudo contactar al servicio central. Entrando al protocolo offline.',
       );
       setPanicModalVisible(false);
@@ -125,7 +121,6 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        {/* Triggers the custom Android-safe Panic Modal */}
         <EmergencyButton onPress={() => setPanicModalVisible(true)} />
 
         <Text style={styles.sectionTitle}>Servicios Disponibles</Text>
@@ -147,7 +142,6 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      {/* Custom Cross-Platform Panic Alert Modal */}
       <Modal
         visible={isPanicModalVisible}
         animationType="fade"
@@ -168,12 +162,10 @@ export default function HomeScreen() {
                 <X color="#555" size={24} />
               </TouchableOpacity>
             </View>
-
             <Text style={styles.modalDescription}>
               Describe brevemente tu situación o motivo de la crisis para que el
               profesional de turno pueda atenderte con prioridad.
             </Text>
-
             <TextInput
               style={styles.panicInput}
               multiline
@@ -183,7 +175,6 @@ export default function HomeScreen() {
               onChangeText={setPanicReason}
               autoFocus
             />
-
             <TouchableOpacity
               style={[
                 styles.panicSubmitButton,

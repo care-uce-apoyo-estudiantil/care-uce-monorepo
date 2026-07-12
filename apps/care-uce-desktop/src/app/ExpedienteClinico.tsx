@@ -14,17 +14,22 @@ import triageService from '../services/triage.service';
 interface ExpedienteProps {
   paciente: PatientRecord;
   onVolver: () => void;
+  isReadOnly?: boolean;
 }
 
 export const ExpedienteClinico: React.FC<ExpedienteProps> = ({
   paciente,
   onVolver,
+  isReadOnly = false,
 }) => {
   const [formData, setFormData] = useState({
     motivoConsulta: paciente.motivo || '',
-    sintomas: '',
+    // 🔥 FIX: Replaced 'any' with a strict TypeScript Intersection Type
+    sintomas: isReadOnly
+      ? (paciente as PatientRecord & { notas?: string }).notas || ''
+      : '',
     diagnostico: '',
-    tratamiento: '',
+    tratamiento: isReadOnly ? 'Caso Resuelto y Cerrado' : '',
     nivelRiesgo: paciente.prioridad || 'Media',
   });
 
@@ -32,10 +37,11 @@ export const ExpedienteClinico: React.FC<ExpedienteProps> = ({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReadOnly) return;
     setIsSaving(true);
     try {
-      // 🔥 FIX: Actually resolve the case in the backend database
-      await triageService.resolveCase(paciente.id, formData.tratamiento);
+      // Actually resolve the case in the backend database
+      await triageService.resolveCase(paciente.id, formData.sintomas);
       alert(
         'Expediente clínico guardado exitosamente. El caso ha sido cerrado.',
       );
@@ -86,13 +92,16 @@ export const ExpedienteClinico: React.FC<ExpedienteProps> = ({
           >
             <FileDown size={18} /> Exportar PDF
           </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-bold shadow-md transition-all disabled:opacity-50"
-          >
-            <Save size={18} /> {isSaving ? 'Guardando...' : 'Guardar y Cerrar'}
-          </button>
+          {!isReadOnly && (
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-bold shadow-md transition-all disabled:opacity-50"
+            >
+              <Save size={18} />{' '}
+              {isSaving ? 'Guardando...' : 'Guardar y Cerrar'}
+            </button>
+          )}
         </div>
       </header>
 
@@ -180,72 +189,64 @@ export const ExpedienteClinico: React.FC<ExpedienteProps> = ({
                 <textarea
                   rows={4}
                   value={formData.sintomas}
+                  readOnly={isReadOnly}
                   onChange={(e) =>
                     setFormData({ ...formData, sintomas: e.target.value })
                   }
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none print:bg-white print:border-none print:p-0 print:text-slate-800 font-serif"
+                  className={`w-full p-4 border border-slate-200 rounded-xl outline-none resize-none print:bg-white print:border-none print:p-0 print:text-slate-800 font-serif ${isReadOnly ? 'bg-white' : 'bg-slate-50 focus:ring-2 focus:ring-teal-500'}`}
                   placeholder="[Haga clic aquí para transcribir los síntomas de la evaluación clínica...]"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-6 print:grid-cols-1 print:gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    Impresión Diagnóstica (CIE-10 / DSM-V)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.diagnostico}
-                    onChange={(e) =>
-                      setFormData({ ...formData, diagnostico: e.target.value })
-                    }
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none print:bg-white print:border-none print:p-0 print:font-serif"
-                    placeholder="Ej. F41.1 Trastorno de ansiedad generalizada"
-                  />
+              {!isReadOnly && (
+                <div className="grid grid-cols-2 gap-6 print:grid-cols-1 print:gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                      Impresión Diagnóstica (CIE-10 / DSM-V)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.diagnostico}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          diagnostico: e.target.value,
+                        })
+                      }
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none print:bg-white print:border-none print:p-0 print:font-serif"
+                      placeholder="Ej. F41.1 Trastorno de ansiedad generalizada"
+                    />
+                  </div>
+                  <div className="print:hidden">
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                      Re-evaluación del Nivel de Riesgo
+                    </label>
+                    <select
+                      value={formData.nivelRiesgo}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          nivelRiesgo: e.target.value as
+                            | 'Alta'
+                            | 'Media'
+                            | 'Baja',
+                        })
+                      }
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                    >
+                      <option value="Alta">
+                        Riesgo Alto (Crisis Activa / Derivación Inmediata)
+                      </option>
+                      <option value="Media">
+                        Riesgo Medio (Seguimiento preventivo)
+                      </option>
+                      <option value="Baja">
+                        Riesgo Bajo (Consulta regular)
+                      </option>
+                    </select>
+                  </div>
                 </div>
-                <div className="print:hidden">
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    Re-evaluación del Nivel de Riesgo
-                  </label>
-                  <select
-                    value={formData.nivelRiesgo}
-                    // 🔥 FIX: Strict casting to avoid ESLint 'any' rule failure
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        nivelRiesgo: e.target.value as
-                          | 'Alta'
-                          | 'Media'
-                          | 'Baja',
-                      })
-                    }
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
-                  >
-                    <option value="Alta">
-                      Riesgo Alto (Crisis Activa / Derivación Inmediata)
-                    </option>
-                    <option value="Media">
-                      Riesgo Medio (Seguimiento preventivo)
-                    </option>
-                    <option value="Baja">Riesgo Bajo (Consulta regular)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  Plan de Tratamiento / Derivación
-                </label>
-                <textarea
-                  rows={4}
-                  value={formData.tratamiento}
-                  onChange={(e) =>
-                    setFormData({ ...formData, tratamiento: e.target.value })
-                  }
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none print:bg-white print:border-none print:p-0 print:font-serif"
-                  placeholder="Defina las acciones inmediatas de soporte terapéutico..."
-                />
-              </div>
+              )}
             </div>
           </div>
         </div>
