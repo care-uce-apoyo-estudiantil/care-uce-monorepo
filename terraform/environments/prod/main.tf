@@ -158,13 +158,39 @@ resource "aws_instance" "data_services" {
   vpc_security_group_ids = [aws_security_group.data_sg.id]
   iam_instance_profile   = "LabInstanceProfile"
 
+  # 🔥 FIX: sin esto, Terraform NO recrea la instancia cuando cambia
+  # user_data (solo actualiza el atributo, pero una instancia ya viva no
+  # vuelve a correr cloud-init). Con esto, cualquier cambio futuro al
+  # script sí se aplica de verdad.
+  user_data_replace_on_change = true
+
   user_data = base64encode(<<-EOF
               #!/bin/bash
-              apt-get update -y
-              apt-get install -y docker.io docker-compose-v2
+              # 🔥 FIX: log completo para poder depurar con
+              # `cat /var/log/user-data.log` en vez de adivinar
+              exec > /var/log/user-data.log 2>&1
+              set -x
+
+              # 🔥 FIX: apt-daily/unattended-upgrades puede tener el lock de
+              # dpkg tomado justo al arrancar; -o DPkg::Lock::Timeout hace que
+              # apt-get espere en vez de fallar de inmediato
+              apt-get -o DPkg::Lock::Timeout=120 update -y
+              apt-get -o DPkg::Lock::Timeout=120 install -y docker.io docker-compose-v2
               systemctl enable docker
               systemctl start docker
               usermod -aG docker ubuntu
+
+              # 🔥 FIX: 'systemctl start docker' retorna en cuanto el unit systemd
+              # arranca, pero el socket de la API de Docker puede tardar unos
+              # segundos más en estar listo. Sin esta espera, 'docker run'
+              # puede fallar a mitad de arranque del daemon y dejar el
+              # contenedor atascado en estado "Created" para siempre (nunca
+              # llega a "Up", y --restart=always no ayuda porque esa política
+              # solo aplica DESPUES de un arranque exitoso).
+              for i in $(seq 1 30); do
+                docker info >/dev/null 2>&1 && break
+                sleep 2
+              done
 
               docker network create careuce-data-network
 
@@ -205,11 +231,23 @@ resource "aws_launch_template" "app" {
 
   user_data = base64encode(<<-EOF
               #!/bin/bash
-              apt-get update -y
-              apt-get install -y docker.io docker-compose-v2
+              exec > /var/log/user-data.log 2>&1
+              set -x
+
+              apt-get -o DPkg::Lock::Timeout=120 update -y
+              apt-get -o DPkg::Lock::Timeout=120 install -y docker.io docker-compose-v2
               systemctl enable docker
               systemctl start docker
               usermod -aG docker ubuntu
+
+              # 🔥 FIX: esperar a que el daemon de Docker esté realmente listo
+              # (ver mismo comentario en el user_data de data_services). Esto es
+              # lo que probablemente dejó a "api-gateway" atascado en estado
+              # "Created" sin arrancar nunca.
+              for i in $(seq 1 30); do
+                docker info >/dev/null 2>&1 && break
+                sleep 2
+              done
 
               # 1. Crear red privada
               docker network create careuce-prod-network
