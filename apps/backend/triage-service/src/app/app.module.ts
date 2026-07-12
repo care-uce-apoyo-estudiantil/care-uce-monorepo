@@ -14,16 +14,23 @@ import { TriageModule } from './triage/triage.module';
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('TRIAGE_DB_HOST') || 'postgres-triage',
-        port: configService.get<number>('TRIAGE_DB_PORT') || 5432,
-        username: configService.get<string>('TRIAGE_DB_USER') || 'postgres',
-        password: configService.get<string>('TRIAGE_DB_PASSWORD') || 'root',
-        database: configService.get<string>('TRIAGE_DB_NAME') || 'triage_db',
-        autoLoadEntities: true,
-        synchronize: true, // Solo para desarrollo local/QA
-      }),
+      useFactory: (configService: ConfigService) => {
+        const isProduction =
+          configService.get<string>('NODE_ENV') === 'production';
+
+        return {
+          type: 'postgres',
+          host:
+            configService.get<string>('TRIAGE_DB_HOST') || 'postgres-triage',
+          port: configService.get<number>('TRIAGE_DB_PORT') || 5432,
+          username: configService.get<string>('TRIAGE_DB_USER') || 'postgres',
+          password: configService.get<string>('TRIAGE_DB_PASSWORD') || 'root',
+          database: configService.get<string>('TRIAGE_DB_NAME') || 'triage_db',
+          autoLoadEntities: true,
+          synchronize: !isProduction, // 🔥 FIX: nunca auto-sync en prod (antes era true siempre)
+          ssl: isProduction ? { rejectUnauthorized: false } : false, // 🔥 FIX: RDS exige SSL en prod
+        };
+      },
       inject: [ConfigService],
     }),
     TriageModule,
