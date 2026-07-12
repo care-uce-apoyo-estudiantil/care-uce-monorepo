@@ -1,47 +1,50 @@
-// src/pages/AuthPage.tsx
+// Location: apps/care-uce-web/src/pages/AuthPage.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth.service';
-import { AuthForm } from '../components/organisms/AuthForm';
+import { AuthForm, AuthFormData } from '../components/organisms/AuthForm';
 
 export const AuthPage: React.FC = () => {
-  // Estado para saber si estamos en login o registro
+  // State to track whether we are in login or register mode
   const [formType, setFormType] = useState<'login' | 'register'>('login');
 
-  // Estados de carga y error
+  // Loading and error states
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string>('');
 
   const navigate = useNavigate();
 
-  // Función para cambiar entre Login y Registro
+  // Function to toggle between Login and Registration views
   const handleToggleType = () => {
     setFormType(formType === 'login' ? 'register' : 'login');
-    setError(''); // Limpiamos errores al cambiar de vista
+    setError(''); // Clear errors when switching views
   };
 
-  // Función que recibe los datos desde el AuthForm y llama al backend
-  const handleAuthSubmit = async (formData: any) => {
+  // 1. Tipamos estrictamente el formData y quitamos el 'any'
+  const handleAuthSubmit = async (formData: AuthFormData) => {
     setIsLoading(true);
-    setError('');
+    setError(''); // 2. Usamos '' en lugar de null para respetar el tipado
 
     try {
+      // 3. Corregimos 'type' por 'formType' (el nombre de tu variable de estado)
       if (formType === 'login') {
+        // En el login solo mandamos email y password
         await authService.login(formData.email, formData.password);
+        navigate('/dashboard');
       } else {
-        // Asignamos 'student' por defecto, o puedes mapear el rol que necesites
-        await authService.register(
-          formData.email,
-          formData.password,
-          'student',
-        );
+        // En el registro mandamos el formData completo
+        await authService.register(formData);
+        alert('Administrador registrado con éxito. Inicie sesión.');
+        // 4. Corregimos 'setType' por 'setFormType'
+        setFormType('login');
       }
-
-      // Si todo sale bien, lo disparamos al dashboard
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Error al conectar con el servidor.');
-      console.error(err);
+    } catch (err: unknown) {
+      // 5. Eliminamos el 'err: any' usando unknown y verificando si es una instancia de Error
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Error de autenticación inesperado');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -50,7 +53,7 @@ export const AuthPage: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
       <div className="w-full max-w-md">
-        {/* Aquí inyectamos tu Organismo exacto */}
+        {/* Inject the strictly typed AuthForm */}
         <AuthForm
           type={formType}
           onToggleType={handleToggleType}

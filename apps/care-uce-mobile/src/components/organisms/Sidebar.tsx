@@ -8,30 +8,40 @@ import {
   Settings,
   LogOut,
   X,
+  LucideIcon, // Imported to strictly type the icon prop
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../../hooks/useAuth'; // Hook de autenticación incorporado
+import { useAuth } from '../../hooks/useAuth'; // Built-in authentication hook
 
 interface SidebarProps {
   visible: boolean;
   onClose: () => void;
 }
 
+// Strictly type the MenuItem to eliminate 'any' ESLint error
+interface MenuItemProps {
+  icon: LucideIcon;
+  label: string;
+  onPress: () => void;
+}
+
 export const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
   const router = useRouter();
-  const { logout, user } = useAuth(); // Extraemos los datos del usuario y la función de logout
+  const { logout, user } = useAuth(); // Extract user data and logout function
 
   const handleLogout = async () => {
-    onClose(); // Cerramos el modal primero para evitar congelamientos visuales
+    onClose(); // Close the modal first to prevent visual freezing
     try {
-      await logout(); // Limpia los tokens del AsyncStorage
-      router.replace('/'); // Te manda directo a la pantalla de Login
-    } catch (error) {
-      console.error('Error al cerrar sesión desde el sidebar:', error);
+      await logout(); // Clear tokens from AsyncStorage
+      router.replace('/'); // Redirect directly to Login screen
+    } catch (error: unknown) {
+      // Replaced implicit any with unknown
+      console.error('Error logging out from sidebar:', error);
     }
   };
 
-  const MenuItem = ({ icon: Icon, label, onPress }: any) => (
+  // Replaced 'any' with MenuItemProps
+  const MenuItem = ({ icon: Icon, label, onPress }: MenuItemProps) => (
     <TouchableOpacity style={styles.menuItem} onPress={onPress}>
       <Icon color="#333333" size={24} style={styles.menuIcon} />
       <Text style={styles.menuText}>{label}</Text>
@@ -42,7 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
     <Modal visible={visible} transparent={true} animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.sidebarContainer}>
-          {/* Header Azul con datos dinámicos */}
+          {/* Blue Header with dynamic data */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <X color="#FFFFFF" size={24} />
@@ -51,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
             <View style={styles.profileSection}>
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarInitials}>
-                  {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
+                  {user?.nombre ? user.nombre.charAt(0).toUpperCase() : 'U'}
                 </Text>
               </View>
               <View style={{ flex: 1 }}>
@@ -63,7 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
             </View>
           </View>
 
-          {/* Menú de Opciones enlazado al Router */}
+          {/* Options Menu linked to Router */}
           <View style={styles.menuContainer}>
             <MenuItem
               icon={Home}
@@ -90,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
             <MenuItem icon={Settings} label="Configuración" onPress={onClose} />
           </View>
 
-          {/* Botón de Cerrar Sesión Real */}
+          {/* Actual Logout Button */}
           <View style={styles.footer}>
             <TouchableOpacity
               style={styles.logoutButton}
@@ -102,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
           </View>
         </View>
 
-        {/* Cierre táctil al dar clic fuera del panel blanco */}
+        {/* Touch outside to close the white panel */}
         <TouchableOpacity
           style={styles.outsideClick}
           onPress={onClose}

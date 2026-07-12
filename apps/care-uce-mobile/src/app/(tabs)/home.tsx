@@ -1,3 +1,4 @@
+// Location: apps/care-uce-mobile/src/app/(tabs)/home.tsx
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Calendar, BookHeart } from 'lucide-react-native';
@@ -12,30 +13,38 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
 
+  // 🔥 Smart display name resolver to always show a friendly name
+  const getDisplayName = () => {
+    if (user?.nombre) return user.nombre;
+    if (user?.name) return user.name;
+    if (user?.fullName) return user.fullName;
+    // Fallback: If no name exists, split the email before the '@' sign
+    if (user?.email) return user.email.split('@')[0];
+    return 'Estudiante';
+  };
+
   return (
     <View style={styles.safeArea}>
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
-        {/* Sección de Bienvenida */}
+        {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.greeting}>Hola,</Text>
-          <Text style={styles.userName}>
-            {user?.email?.split('@')[0] || 'Estudiante'} 👋
-          </Text>
+          <Text style={styles.userName}>{getDisplayName()} 👋</Text>
           <Text style={styles.subtitle}>
             ¿Cómo podemos ayudarte hoy con tu bienestar?
           </Text>
         </View>
 
-        {/* Átomo: Botón de Emergencia */}
+        {/* Atom: Emergency Panic Button */}
         <EmergencyButton onPress={() => router.push('/(tabs)/crisis')} />
 
-        {/* Sección de Servicios */}
+        {/* Services Section */}
         <Text style={styles.sectionTitle}>Servicios Disponibles</Text>
         <View style={styles.grid}>
-          {/* Moléculas: Tarjetas de Acción */}
+          {/* Molecules: Action Cards */}
           <ActionCard
             title="Agendar Cita"
             description="Atención Profesional"
@@ -67,6 +76,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#003366',
     marginTop: 2,
+    textTransform: 'capitalize', // Convierte "colombia" en "Colombia"
   },
   subtitle: { fontSize: 14, color: '#666666', marginTop: 6 },
   sectionTitle: {

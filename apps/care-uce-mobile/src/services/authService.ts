@@ -1,17 +1,20 @@
 import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 🌍 GESTIÓN DE ENTORNOS (Descomenta el que vayas a usar)
-//const API_BASE_URL = 'http://192.168.1.4:3000/api'; // Local (Tu IP física)
-const API_BASE_URL = 'http://caruceqa.programacionwebuce.net/api'; // QA
-// const API_BASE_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
+declare const process: { env: { EXPO_PUBLIC_API_URL?: string } } | undefined;
 
+// 🌍 El móvil siempre necesita una URL absoluta al Gateway (IP de la EC2 de QA
+// o DNS del ALB de PROD), sin puerto: Nginx expone todo en el puerto 80 y
+// enruta /api/auth -> auth-service internamente.
+const API_BASE_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}/api`;
 export interface AuthResponse {
   access_token: string;
   user: {
     id: string;
     email: string;
     role: string;
+    nombre: string;
+    cedula: string;
   };
 }
 
@@ -19,6 +22,18 @@ export interface User {
   id?: string;
   email: string;
   role?: string;
+  nombre?: string;
+  name?: string; // Alias inyectado para la UI
+  fullName?: string; // Alias inyectado para la UI
+  cedula?: string;
+}
+
+export interface RegisterPayload {
+  fullName: string;
+  idCard: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
 }
 
 class AuthService {
@@ -30,28 +45,25 @@ class AuthService {
       timeout: 10000,
     });
 
-    // Interceptor para agregar el token en cada request
     this.api.interceptors.request.use(
       async (config) => {
         try {
-          const token = await AsyncStorage.getItem('auth_token'); // 📱 Mobile usa AsyncStorage
+          const token = await AsyncStorage.getItem('auth_token');
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
           }
         } catch (error) {
-          console.error('Error al leer token:', error);
+          console.error('Error reading token:', error);
         }
         return config;
       },
       (error) => Promise.reject(error),
     );
 
-    // Interceptor para manejo de errores
     this.api.interceptors.response.use(
       (response) => response,
       async (error) => {
         if (error.response?.status === 401) {
-          // Token expirado, limpiar storage
           await AsyncStorage.removeItem('auth_token');
           await AsyncStorage.removeItem('user');
         }
@@ -60,97 +72,113 @@ class AuthService {
     );
   }
 
-  // Registro de nuevo usuario
-  async register(
-    email: string,
-    password: string,
-    role: string = 'student',
-  ): Promise<AuthResponse> {
+  // 🔥 UTILIDAD: Enriquecemos el objeto para que la UI encuentre siempre el nombre
+  private enrichUser(userData: Partial<User>): User {
+    return {
+      ...userData,
+      name: userData.nombre,
+      fullName: userData.nombre,
+    } as User;
+  }
+
+  async register(data: RegisterPayload): Promise<AuthResponse> {
     try {
-      const response = await this.api.post<AuthResponse>('/auth/register', {
-        email,
-        password,
-        role,
-      });
+      const response = await this.api.post<AuthResponse>(
+        '/auth/register',
+        data,
+        { headers: { 'x-client-origin': 'mobile' } },
+      );
+
       if (response.data.access_token) {
         await AsyncStorage.setItem('auth_token', response.data.access_token);
-        await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+        // Guardamos el usuario con los alias
+        await AsyncStorage.setItem(
+          'user',
+          JSON.stringify(this.enrichUser(response.data.user)),
+        );
       }
       return response.data;
-    } catch (error: any) {
-      throw {
-        message: error.response?.data?.message || 'Error en registro',
-        status: error.response?.status || 500,
-      };
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const validationMessages = error.response?.data?.message;
+        const formattedMessage = Array.isArray(validationMessages)
+          ? validationMessages.join('\n')
+          : validationMessages || 'Registration error';
+
+        throw {
+          message: formattedMessage,
+          status: error.response?.status || 500,
+        };
+      }
+      throw { message: 'Unexpected server error', status: 500 };
     }
   }
 
-  // Login
   async login(email: string, password: string): Promise<AuthResponse> {
     try {
       const response = await this.api.post<AuthResponse>('/auth/login', {
         email,
         password,
       });
+
+      if (response.data.user.role !== 'student') {
+        throw {
+          message:
+            'Acceso Denegado: Esta aplicación móvil es de uso exclusivo para Estudiantes.',
+          status: 403,
+        };
+      }
+
       if (response.data.access_token) {
         await AsyncStorage.setItem('auth_token', response.data.access_token);
-        await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+        // Guardamos el usuario con los alias
+        await AsyncStorage.setItem(
+          'user',
+          JSON.stringify(this.enrichUser(response.data.user)),
+        );
       }
       return response.data;
-    } catch (error: any) {
-      throw {
-        message: error.response?.data?.message || 'Credenciales inválidas',
-        status: error.response?.status || 500,
-      };
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'status' in error &&
+        (error as { status?: number }).status === 403
+      )
+        throw error;
+
+      if (axios.isAxiosError(error)) {
+        const validationMessages = error.response?.data?.message;
+        const formattedMessage = Array.isArray(validationMessages)
+          ? validationMessages.join('\n')
+          : validationMessages || 'Invalid credentials';
+
+        throw {
+          message: formattedMessage,
+          status: error.response?.status || 500,
+        };
+      }
+      throw { message: 'Unexpected server error', status: 500 };
     }
   }
 
-  // Obtener perfil del usuario
-  async getProfile(): Promise<User> {
-    try {
-      const response = await this.api.get<{ user: User }>('/auth/profile');
-      return response.data.user;
-    } catch (error: any) {
-      throw {
-        message: error.response?.data?.message || 'Error al obtener perfil',
-        status: error.response?.status || 500,
-      };
-    }
-  }
+  // NOTA: se removió `getProfile()` porque llamaba a `GET /auth/profile`,
+  // un endpoint que no existe en auth-service (habría devuelto 404 siempre)
+  // y que además no se usaba en ningún lugar de la app. El perfil se lee
+  // del usuario cacheado en `getStoredUser()`, que se guarda en login/register.
 
-  // Logout
   async logout(): Promise<void> {
-    try {
-      await AsyncStorage.removeItem('auth_token');
-      await AsyncStorage.removeItem('user');
-    } catch (error) {
-      console.error('Error al logout:', error);
-    }
+    await AsyncStorage.removeItem('auth_token');
+    await AsyncStorage.removeItem('user');
   }
 
-  // Obtener token guardado
   async getToken(): Promise<string | null> {
-    try {
-      return await AsyncStorage.getItem('auth_token');
-    } catch (error) {
-      return null;
-    }
+    return await AsyncStorage.getItem('auth_token');
   }
 
-  // Obtener usuario guardado
   async getStoredUser(): Promise<User | null> {
-    try {
-      const user = await AsyncStorage.getItem('user');
-      return user ? JSON.parse(user) : null;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  // Validar si hay sesión activa
-  async isAuthenticated(): Promise<boolean> {
-    const token = await this.getToken();
-    return !!token;
+    const user = await AsyncStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
   }
 }
 

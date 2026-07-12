@@ -10,10 +10,28 @@
       "path": "./apps/backend/auth-service"
     },
     {
-      "path": "./apps/care-uce-mobile"
+      "path": "./apps/care-uce-web"
     },
     {
-      "path": "./apps/care-uce-web"
+      "path": "./apps/care-uce-desktop"
+    },
+    {
+      "path": "./apps/backend/triage-service-e2e"
+    },
+    {
+      "path": "./apps/backend/triage-service"
+    },
+    {
+      "path": "./apps/backend/clinical-service-e2e"
+    },
+    {
+      "path": "./apps/backend/clinical-service"
+    },
+    {
+      "path": "./apps/backend/appointment-service-e2e"
+    },
+    {
+      "path": "./apps/backend/appointment-service"
     }
   ],
   "ts-node": {

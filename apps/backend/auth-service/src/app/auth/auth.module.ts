@@ -10,13 +10,15 @@ import { JwtStrategy } from './jwt.strategy';
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
-    // Inyectamos el módulo JWT leyendo el .env
+    // Inject JWT module reading from .env
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
+          // Apagamos la regla de ESLint exclusivamente para esta línea
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           expiresIn: configService.get<string>('JWT_EXPIRATION', '1h') as any,
         },
       }),

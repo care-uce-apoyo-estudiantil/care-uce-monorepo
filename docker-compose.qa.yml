@@ -1,41 +1,148 @@
 version: '3.8'
 
 services:
-  # 1. Contenedor de Base de Datos para Auth Service
+  # --- BASES DE DATOS RELACIONALES ---
   auth-db:
     image: postgres:15-alpine
     container_name: careuce-auth-db-qa
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
+      POSTGRES_DB: ${DB_NAME:-auth_db}
     networks:
       - careuce-qa-network
-    # No exponemos puertos al exterior, máxima seguridad.
 
-  # 2. EL API GATEWAY (La nueva puerta de enlace)
+  triage-db:
+    image: postgres:15-alpine
+    container_name: careuce-triage-db-qa
+    restart: always
+    environment:
+      POSTGRES_USER: ${TRIAGE_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${TRIAGE_DB_PASSWORD:-root}
+      POSTGRES_DB: ${TRIAGE_DB_NAME:-triage_db}
+    networks:
+      - careuce-qa-network
+
+  # 🔥 NUEVO: BASE DE DATOS DE CITAS (APPOINTMENT SERVICE)
+  appointment-db:
+    image: postgres:15-alpine
+    container_name: careuce-appointment-db-qa
+    restart: always
+    environment:
+      POSTGRES_USER: ${APPOINTMENT_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${APPOINTMENT_DB_PASSWORD:-root}
+      POSTGRES_DB: ${APPOINTMENT_DB_NAME:-appointment_db}
+    networks:
+      - careuce-qa-network
+
+  # 🔥 NUEVO: BASE DE DATOS DOCUMENTAL
+  mongodb:
+    image: mongo:6.0
+    container_name: careuce-mongodb-qa
+    restart: always
+    ports:
+      - '27017:27017'
+    networks:
+      - careuce-qa-network
+
+  # 🔥 NUEVO: SISTEMA NERVIOSO (KAFKA EN MODO KRAFT)
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: careuce-kafka-qa
+    restart: always
+    ports:
+      - '9092:9092'
+    environment:
+      # Eliminamos el _CFG_ y usamos la sintaxis oficial de Apache
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=controller,broker
+      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      # 🔥 FUNDAMENTAL: Cómo se anuncia Kafka en la red para que clinical-service lo encuentre
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+    networks:
+      - careuce-qa-network
+
+  # 🔥 NUEVO: FRONTEND WEB (React SPA servido por Nginx)
+  web:
+    image: ${DOCKER_USERNAME}/careuce-web:qa
+    container_name: careuce-web-qa
+    restart: always
+    networks:
+      - careuce-qa-network
+
+  # --- EL API GATEWAY ---
   api-gateway:
     image: nginx:alpine
     container_name: careuce-api-gateway-qa
     restart: always
     ports:
-      - '80:80' # 🔥 ATENCIÓN: Exponemos en el puerto 80 estándar web. ¡Adiós problemas con Cloudflare!
+      - '80:80'
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - auth-service
+      - triage-service
+      - clinical-service
+      - appointment-service
+      - web
     networks:
       - careuce-qa-network
 
-  # 3. Tu Microservicio de Autenticación (Ahora está protegido)
+  # --- MICROSERVICIOS ---
   auth-service:
     image: ${DOCKER_USERNAME}/careuce-auth:qa
     container_name: careuce-auth-service-qa
     restart: always
-    # 🔥 ELIMINAMOS "ports: - '3000:3000'". Ya no es accesible desde afuera, solo Nginx puede verlo.
     depends_on:
       - auth-db
+    env_file:
+      - .env
+    networks:
+      - careuce-qa-network
+
+  triage-service:
+    image: ${DOCKER_USERNAME}/careuce-triage:qa
+    container_name: careuce-triage-service-qa
+    restart: always
+    depends_on:
+      - triage-db
+      - kafka # 🔥 Triage ahora debe esperar a que Kafka despierte
+    environment:
+      - KAFKA_BROKER=kafka:9092 # Inyectamos la URL interna de Kafka
+    env_file:
+      - .env
+    networks:
+      - careuce-qa-network
+
+  # 🔥 NUEVO: MICROSERVICIO CONSUMIDOR
+  clinical-service:
+    image: ${DOCKER_USERNAME}/careuce-clinical:qa
+    container_name: careuce-clinical-service-qa
+    restart: always
+    depends_on:
+      - kafka
+      - mongodb
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - MONGO_URI=mongodb://mongodb:27017/clinical_db
+    env_file:
+      - .env
+    networks:
+      - careuce-qa-network
+
+  # 🔥 NUEVO: MICROSERVICIO DE CITAS
+  appointment-service:
+    image: ${DOCKER_USERNAME}/careuce-appointment:qa
+    container_name: careuce-appointment-service-qa
+    restart: always
+    depends_on:
+      - appointment-db
     env_file:
       - .env
     networks:

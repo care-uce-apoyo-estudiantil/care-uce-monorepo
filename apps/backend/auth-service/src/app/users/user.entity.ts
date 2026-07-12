@@ -1,3 +1,4 @@
+// Location: apps/backend/auth-service/src/app/users/user.entity.ts
 import {
   Entity,
   Column,
@@ -6,7 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-@Entity('users') // Nombre de la tabla en PostgreSQL
+@Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -14,18 +15,25 @@ export class User {
   @Column({ unique: true })
   email!: string;
 
+  // The hashed password used for authentication flows
   @Column()
-  password_hash!: string; // Guardaremos la contraseña encriptada
+  password_hash!: string;
 
-  @Column({ default: 'student' }) // Roles: student, psychologist, admin
+  // Role-Based Access Control (student, doctor, admin, auditor)
+  @Column({ default: 'student' })
   role!: string;
 
-  @Column({ default: true })
-  is_active!: boolean;
+  // Full identity name of the user
+  @Column({ nullable: true })
+  nombre!: string;
 
-  @CreateDateColumn()
-  created_at!: Date;
+  // FIX: Added unique constraint to enforce identification document integrity at DB level
+  @Column({ unique: true, nullable: true })
+  cedula!: string;
 
-  @UpdateDateColumn()
-  updated_at!: Date;
+  @CreateDateColumn({ type: 'timestamp' })
+  createdAt!: Date;
+
+  @UpdateDateColumn({ type: 'timestamp' })
+  updatedAt!: Date;
 }
