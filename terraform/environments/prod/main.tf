@@ -231,26 +231,28 @@ resource "aws_launch_template" "app" {
 
   user_data = base64encode(<<-EOF
               #!/bin/bash
-              exec > /var/log/user-data.log 2>&1
-              set -x
-
-              apt-get -o DPkg::Lock::Timeout=120 update -y
-              apt-get -o DPkg::Lock::Timeout=120 install -y docker.io docker-compose-v2
-              systemctl enable docker
-              systemctl start docker
-              usermod -aG docker ubuntu
-
-              # 🔥 FIX: esperar a que el daemon de Docker esté realmente listo
-              # (ver mismo comentario en el user_data de data_services). Esto es
-              # lo que probablemente dejó a "api-gateway" atascado en estado
-              # "Created" sin arrancar nunca.
-              for i in $(seq 1 30); do
-                docker info >/dev/null 2>&1 && break
-                sleep 2
-              done
-
-              # 1. Crear red privada
-              docker network create careuce-prod-network
+-              apt-get update -y
+-              apt-get install -y docker.io docker-compose-v2
++              exec > /var/log/user-data.log 2>&1
++              set -x
++
++              apt-get -o DPkg::Lock::Timeout=120 update -y
++              apt-get -o DPkg::Lock::Timeout=120 install -y docker.io docker-compose-v2
+               systemctl enable docker
+               systemctl start docker
+               usermod -aG docker ubuntu
+ 
++              # 🔥 FIX: esperar a que el daemon de Docker esté realmente listo
++              # (ver mismo comentario en el user_data de data_services). Esto es
++              # lo que probablemente dejó a "api-gateway" atascado en estado
++              # "Created" sin arrancar nunca.
++              for i in $(seq 1 30); do
++                docker info >/dev/null 2>&1 && break
++                sleep 2
++              done
++
+               # 1. Crear red privada
+               docker network create careuce-prod-network
 
               # 2. Iniciar Auth Service
               docker run -d --name auth-service \
@@ -306,46 +308,68 @@ resource "aws_launch_template" "app" {
               # enrutamiento que nginx/nginx.conf usado en QA
               mkdir -p /home/ubuntu/nginx
               cat << 'NGINX_CONF' > /home/ubuntu/nginx/nginx.conf
-              events { worker_connections 1024; }
-              http {
-                  server {
-                      listen 80;
-
-                      # Frontend Web (React SPA). Esta misma ruta "/" también sirve
-                      # de health check para el ALB (el contenedor web responde 200).
-                      location / {
-                          proxy_pass http://web:80;
-                          proxy_set_header Host $host;
-                          proxy_set_header X-Real-IP $remote_addr;
-                          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                      }
-
-                      location /api/auth {
-                          proxy_pass http://auth-service:3000;
-                          proxy_set_header Host $host;
-                          proxy_set_header X-Real-IP $remote_addr;
-                          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                      }
-
-                      location /api/triage {
-                          proxy_pass http://triage-service:3000;
-                          proxy_set_header Host $host;
-                          proxy_set_header X-Real-IP $remote_addr;
-                          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                      }
-
-                      location /api/clinical {
-                          proxy_pass http://clinical-service:3000;
-                          proxy_set_header Host $host;
-                          proxy_set_header X-Real-IP $remote_addr;
-                          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                      }
-
-                      location /api/appointments {
-                          proxy_pass http://appointment-service:3000;
-                          proxy_set_header Host $host;
-                          proxy_set_header X-Real-IP $remote_addr;
-                          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+               events { worker_connections 1024; }
+               http {
++                  # 🔥 FIX: por defecto nginx resuelve los hostnames de los
++                  # 'proxy_pass' UNA SOLA VEZ al arrancar (DNS estático). Si un
++                  # contenedor (p.ej. appointment-service) todavía no existe en
++                  # el DNS interno de Docker en ese instante, nginx se niega a
++                  # arrancar POR COMPLETO con "host not found in upstream",
++                  # tumbando el gateway entero por un solo servicio lento.
++                  # Con 'resolver' + variables, la resolución se hace en cada
++                  # request (perezosa), así que nginx arranca siempre, y si un
++                  # servicio puntual no está listo esa ruta específica
++                  # responde 502 en vez de tumbar todo el gateway.
++                  resolver 127.0.0.11 valid=10s;
++
+                   server {
+                       listen 80;
+ 
+                       # Frontend Web (React SPA). Esta misma ruta "/" también sirve
+                       # de health check para el ALB (el contenedor web responde 200).
+                       location / {
+-                          proxy_pass http://web:80;
++                          set $upstream_web http://web:80;
++                          proxy_pass $upstream_web;
+                           proxy_set_header Host $host;
+                           proxy_set_header X-Real-IP $remote_addr;
+                           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                       }
+ 
+                       location /api/auth {
+-                          proxy_pass http://auth-service:3000;
++                          set $upstream_auth http://auth-service:3000;
++                          proxy_pass $upstream_auth;
+                           proxy_set_header Host $host;
+                           proxy_set_header X-Real-IP $remote_addr;
+                           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                       }
+ 
+                       location /api/triage {
+-                          proxy_pass http://triage-service:3000;
++                          set $upstream_triage http://triage-service:3000;
++                          proxy_pass $upstream_triage;
+                           proxy_set_header Host $host;
+                           proxy_set_header X-Real-IP $remote_addr;
+                           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                       }
+ 
+                       location /api/clinical {
+-                          proxy_pass http://clinical-service:3000;
++                          set $upstream_clinical http://clinical-service:3000;
++                          proxy_pass $upstream_clinical;
+                           proxy_set_header Host $host;
+                           proxy_set_header X-Real-IP $remote_addr;
+                           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                       }
+ 
+                       location /api/appointments {
+-                          proxy_pass http://appointment-service:3000;
++                          set $upstream_appointments http://appointment-service:3000;
++                          proxy_pass $upstream_appointments;
+                           proxy_set_header Host $host;
+                           proxy_set_header X-Real-IP $remote_addr;
+                           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                       }
                   }
               }

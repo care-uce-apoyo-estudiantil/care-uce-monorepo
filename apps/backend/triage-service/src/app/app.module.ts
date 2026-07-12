@@ -20,7 +20,8 @@ import { TriageModule } from './triage/triage.module';
 
         return {
           type: 'postgres',
-          host: configService.get<string>('TRIAGE_DB_HOST') || 'postgres-triage',
+          host:
+            configService.get<string>('TRIAGE_DB_HOST') || 'postgres-triage',
           port: configService.get<number>('TRIAGE_DB_PORT') || 5432,
           username: configService.get<string>('TRIAGE_DB_USER') || 'postgres',
           password: configService.get<string>('TRIAGE_DB_PASSWORD') || 'root',
