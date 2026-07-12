@@ -87,6 +87,12 @@
       "options": {
         "targetName": "lint"
       }
+    },
+    {
+      "plugin": "@nx/jest/plugin",
+      "options": {
+        "targetName": "test"
+      }
     }
   ],
   "analytics": false,
