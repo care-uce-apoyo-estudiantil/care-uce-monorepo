@@ -1,10 +1,9 @@
 // Location: apps/care-uce-web/src/services/admin.service.ts
 import axios from 'axios';
 
-// Ensure we point to the Auth Service (Port 3000)
-const API_URL = import.meta.env.VITE_BASE_IP
-  ? `${import.meta.env.VITE_BASE_IP}:3000/api`
-  : 'http://localhost:3000/api';
+// El Web se sirve desde el mismo Nginx Gateway que expone /api/*.
+// Ruta relativa por defecto (mismo origen); VITE_API_URL es solo para dev local.
+const API_URL = `${import.meta.env.VITE_API_URL ?? ''}/api`;
 
 export interface UserData {
   id: string;

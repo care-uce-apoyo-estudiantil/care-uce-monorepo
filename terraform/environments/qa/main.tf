@@ -3,7 +3,7 @@ terraform {
   cloud {
     organization = "CareUCE"
     workspaces {
-      name = "careuce-qa-second-account"
+      name = "careuce-qa-jimmy"
     }
   }
 }
@@ -95,7 +95,7 @@ resource "aws_instance" "qa_server" {
 
 # 4. DATA: Buscamos la IP Elástica que reservaste manualmente
 data "aws_eip" "mi_ip_fija" {
-  public_ip = "100.28.235.67"
+  public_ip = "100.30.40.35"
 }
 
 # 5. ASOCIACIÓN: Amarra la IP Elástica a la instancia EC2

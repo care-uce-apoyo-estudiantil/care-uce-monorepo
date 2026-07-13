@@ -1,15 +1,12 @@
-// Location: apps/care-uce-mobile/src/services/authService.ts
 import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Native environment check for API
 declare const process: { env: { EXPO_PUBLIC_API_URL?: string } } | undefined;
 
-// 🌍 ENVIRONMENT MANAGEMENT (Uncomment the one you are going to use)
-const API_BASE_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}:3000/api`; // Local (Your physical IP)
-//const API_BASE_URL = 'http://100.28.235.67/api'; // QA
-// const API_BASE_URL = 'http://careuce-alb-prod-1635245767.us-east-1.elb.amazonaws.com/api'; // Prod
-
+// 🌍 El móvil siempre necesita una URL absoluta al Gateway (IP de la EC2 de QA
+// o DNS del ALB de PROD), sin puerto: Nginx expone todo en el puerto 80 y
+// enruta /api/auth -> auth-service internamente.
+const API_BASE_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}/api`;
 export interface AuthResponse {
   access_token: string;
   user: {
@@ -18,8 +15,6 @@ export interface AuthResponse {
     role: string;
     nombre: string;
     cedula: string;
-    birthDate?: string;
-    major?: string;
   };
 }
 
@@ -28,12 +23,9 @@ export interface User {
   email: string;
   role?: string;
   nombre?: string;
-  name?: string; // Injected alias for UI
-  fullName?: string; // Injected alias for UI
+  name?: string; // Alias inyectado para la UI
+  fullName?: string; // Alias inyectado para la UI
   cedula?: string;
-  // 🔥 FIX: Added missing properties to the User interface
-  birthDate?: string;
-  major?: string;
 }
 
 export interface RegisterPayload {
@@ -73,16 +65,14 @@ class AuthService {
       async (error) => {
         if (error.response?.status === 401) {
           await AsyncStorage.removeItem('auth_token');
-          await AsyncStorage.removeItem('user_data'); // Updated key consistency
+          await AsyncStorage.removeItem('user');
         }
         return Promise.reject(error);
       },
     );
   }
 
-  /**
-   * UTILITY: Enriches the user object so the UI can consistently resolve a display name
-   */
+  // 🔥 UTILIDAD: Enriquecemos el objeto para que la UI encuentre siempre el nombre
   private enrichUser(userData: Partial<User>): User {
     return {
       ...userData,
@@ -101,8 +91,9 @@ class AuthService {
 
       if (response.data.access_token) {
         await AsyncStorage.setItem('auth_token', response.data.access_token);
+        // Guardamos el usuario con los alias
         await AsyncStorage.setItem(
-          'user_data',
+          'user',
           JSON.stringify(this.enrichUser(response.data.user)),
         );
       }
@@ -133,15 +124,16 @@ class AuthService {
       if (response.data.user.role !== 'student') {
         throw {
           message:
-            'Access Denied: This mobile application is exclusive for Students.',
+            'Acceso Denegado: Esta aplicación móvil es de uso exclusivo para Estudiantes.',
           status: 403,
         };
       }
 
       if (response.data.access_token) {
         await AsyncStorage.setItem('auth_token', response.data.access_token);
+        // Guardamos el usuario con los alias
         await AsyncStorage.setItem(
-          'user_data',
+          'user',
           JSON.stringify(this.enrichUser(response.data.user)),
         );
       }
@@ -170,24 +162,14 @@ class AuthService {
     }
   }
 
-  async getProfile(): Promise<User> {
-    try {
-      const response = await this.api.get<{ user: User }>('/auth/profile');
-      return this.enrichUser(response.data.user);
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        throw {
-          message: error.response?.data?.message || 'Error fetching profile',
-          status: error.response?.status || 500,
-        };
-      }
-      throw { message: 'Unexpected server error', status: 500 };
-    }
-  }
+  // NOTA: se removió `getProfile()` porque llamaba a `GET /auth/profile`,
+  // un endpoint que no existe en auth-service (habría devuelto 404 siempre)
+  // y que además no se usaba en ningún lugar de la app. El perfil se lee
+  // del usuario cacheado en `getStoredUser()`, que se guarda en login/register.
 
   async logout(): Promise<void> {
     await AsyncStorage.removeItem('auth_token');
-    await AsyncStorage.removeItem('user_data');
+    await AsyncStorage.removeItem('user');
   }
 
   async getToken(): Promise<string | null> {
@@ -195,7 +177,7 @@ class AuthService {
   }
 
   async getStoredUser(): Promise<User | null> {
-    const user = await AsyncStorage.getItem('user_data');
+    const user = await AsyncStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   }
 }

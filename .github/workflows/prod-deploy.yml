@@ -20,7 +20,7 @@ jobs:
           cache: 'npm'
 
       - name: 📦 Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: 🐳 Log in to Docker Hub
         uses: docker/login-action@v3
@@ -33,11 +33,28 @@ jobs:
           docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-auth:prod -f apps/backend/auth-service/Dockerfile .
           docker push ${{ secrets.DOCKER_USERNAME }}/careuce-auth:prod
 
-      # 🔥 NUEVO: Build and Push Triage Service (PROD)
       - name: 🚀 Build and Push Triage Service (PROD)
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-triage:prod -f apps/backend/triage-service/Dockerfile .
           docker push ${{ secrets.DOCKER_USERNAME }}/careuce-triage:prod
+
+      # 🔥 NUEVO: Build and Push Clinical Service (PROD)
+      - name: 🚀 Build and Push Clinical Service (PROD)
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-clinical:prod -f apps/backend/clinical-service/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/careuce-clinical:prod
+
+      # 🔥 NUEVO: Build and Push Appointment Service (PROD)
+      - name: 🚀 Build and Push Appointment Service (PROD)
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-appointment:prod -f apps/backend/appointment-service/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/careuce-appointment:prod
+
+      # 🔥 NUEVO: Build and Push Web Frontend (PROD)
+      - name: 🚀 Build and Push Web Frontend (PROD)
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/careuce-web:prod -f apps/care-uce-web/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/careuce-web:prod
 
   deploy-to-asg:
     name: 🚀 Refresh Auto Scaling Group (PROD)

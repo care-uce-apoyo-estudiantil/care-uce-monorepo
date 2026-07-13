@@ -32,7 +32,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
           database: configService.get<string>('DB_NAME'),
           entities: [User],
           autoLoadEntities: true,
-          synchronize: !isProduction, // Disable automatic synchronization in production environments
+          synchronize: true, // antes: !isProduction — ahora igual en QA y PROD
           ssl: isProduction ? { rejectUnauthorized: false } : false,
         };
       },

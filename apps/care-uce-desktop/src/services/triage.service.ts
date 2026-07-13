@@ -2,117 +2,80 @@
 import axios from 'axios';
 import { PatientRecord } from '../types/clinical';
 
-// Strict interface matching the backend TriageEntity response
-interface TriageResponse {
-  id: string;
-  patientName: string;
-  patientAge: number;
-  academicMajor: string;
-  crisisReason: string;
-  priorityLevel: 'Alta' | 'Media' | 'Baja';
-  caseStatus: 'Pendiente' | 'En Proceso' | 'Resuelto';
-  createdAt: string;
-  updatedAt?: string;
-  resolutionNotes?: string;
-}
-
-const TRIAGE_API_URL =
-  import.meta.env.VITE_TRIAGE_API_URL || 'http://localhost:3001/api';
+// 🌍 A través del Gateway (Nginx enruta /api/triage -> triage-service internamente)
+const TRIAGE_API_URL = `${import.meta.env.VITE_BASE_IP ?? 'http://localhost'}/api`;
 
 class TriageService {
-  /**
-   * Fetches real-time crisis alerts with strict typing. No ESLint 'any' warnings.
-   */
   async getActiveCases(): Promise<PatientRecord[]> {
     try {
-      const response = await axios.get<TriageResponse[]>(
-        `${TRIAGE_API_URL}/triage/active`,
-      );
+      const token = localStorage.getItem('auth_token');
+      const response = await axios.get(`${TRIAGE_API_URL}/triage/active`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      return response.data.map((alert: TriageResponse) => {
+      interface ApiTriageItem {
+        id: string;
+        patientName: string;
+        patientAge?: number | string;
+        academicMajor?: string;
+        crisisReason?: string;
+        priorityLevel?: string;
+        caseStatus?: string;
+        createdAt?: string;
+      }
+
+      return (response.data as ApiTriageItem[]).map((item) => {
+        const estado =
+          item.caseStatus === 'Completado' ||
+          item.caseStatus === 'En Proceso' ||
+          item.caseStatus === 'Derivado'
+            ? (item.caseStatus as 'Completado' | 'En Proceso' | 'Derivado')
+            : 'En Proceso';
+
         return {
-          id: String(alert.id),
-          // Maps exact database entity parameters to Desktop UI props
-          paciente: String(alert.patientName),
-          edad: Number(alert.patientAge),
-          carrera: String(alert.academicMajor),
-          motivo: String(alert.crisisReason),
-          prioridad: alert.priorityLevel,
-          estado: alert.caseStatus === 'Resuelto' ? 'Completado' : 'En Proceso',
-          fechaAtencion: String(alert.createdAt),
-          tiempoEspera: 'Calculando...',
+          id: item.id,
+          paciente: item.patientName,
+          edad:
+            typeof item.patientAge === 'number'
+              ? item.patientAge
+              : Number(item.patientAge ?? 0) || 0,
+          carrera: item.academicMajor || '',
+          motivo: item.crisisReason || '',
+          prioridad:
+            item.priorityLevel === 'Alta' ||
+            item.priorityLevel === 'Media' ||
+            item.priorityLevel === 'Baja'
+              ? (item.priorityLevel as 'Alta' | 'Media' | 'Baja')
+              : 'Baja',
+          tiempoEspera: 'Reciente',
+          estado,
+          fechaAtencion: item.createdAt || '',
         };
       });
     } catch (error) {
-      console.error(
-        'Error connection packet on triage-service endpoint:',
-        error,
-      );
-      return [];
+      console.error('Error fetching active triage cases:', error);
+      throw new Error('No se pudieron cargar los casos de triage.');
     }
   }
 
-  /**
-   * Fetches the historical repository of resolved cases.
-   */
-  async getResolvedCases(): Promise<PatientRecord[]> {
-    try {
-      const response = await axios.get<TriageResponse[]>(
-        `${TRIAGE_API_URL}/triage/resolved`,
-      );
-
-      return response.data.map((alert: TriageResponse) => {
-        return {
-          id: String(alert.id),
-          paciente: String(alert.patientName),
-          edad: Number(alert.patientAge),
-          carrera: String(alert.academicMajor),
-          motivo: String(alert.crisisReason),
-          prioridad: alert.priorityLevel,
-          estado: 'Completado',
-          fechaAtencion: String(alert.updatedAt || alert.createdAt),
-          tiempoEspera: 'N/A',
-          notas:
-            alert.resolutionNotes || 'Sin anotaciones clínicas registradas.',
-        };
-      });
-    } catch (error) {
-      console.error('Error fetching resolved cases:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Updates the triage record parameters to flag it as resolved.
-   */
+  // 🔥 NUEVO: Método para finalizar la atención y guardar las notas del doctor
   async resolveCase(id: string, notes: string): Promise<void> {
     try {
-      await axios.patch(`${TRIAGE_API_URL}/triage/${id}/status`, {
-        status: 'Resuelto',
-        resolutionNotes: notes,
-      });
+      const token = localStorage.getItem('auth_token');
+      await axios.patch(
+        `${TRIAGE_API_URL}/triage/${id}/status`,
+        {
+          status: 'Resolved',
+          clinicalNotes: notes,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
     } catch (error) {
-      console.error('Error patch transaction in triage-service:', error);
-      throw new Error('Could not update case status.');
+      console.error('Error resolving triage case:', error);
+      throw new Error('No se pudo finalizar la atención.');
     }
-  }
-
-  /**
-   * Fetches chat messages for the active session.
-   */
-  async getChat(id: string) {
-    const res = await axios.get(`${TRIAGE_API_URL}/triage/${id}/chat`);
-    return res.data;
-  }
-
-  /**
-   * Sends a new chat message to the active session.
-   */
-  async sendChatMessage(id: string, text: string) {
-    await axios.post(`${TRIAGE_API_URL}/triage/${id}/chat`, {
-      sender: 'doctor',
-      text,
-    });
   }
 }
 
