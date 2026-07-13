@@ -3,7 +3,7 @@ name: PROD Deployment Pipeline
 on:
   push:
     branches:
-      - dev/sistem-integrado
+      - main
 
 jobs:
   ci-and-build:
