@@ -3,7 +3,7 @@ name: QA Deployment Pipeline
 on:
   push:
     branches:
-      - QA
+      - dev/sistem-integrado
 
 jobs:
   ci-and-build:
