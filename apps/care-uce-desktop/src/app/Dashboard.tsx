@@ -10,11 +10,27 @@ import { Appointments } from './components/Appointments';
 import { PatientRecord, DashboardView } from '../types/clinical';
 import authService from '../services/auth.service';
 import triageService from '../services/triage.service';
+import { DoctorSettings } from './components/DoctorSettings';
+
+const calculateWaitTime = (creationDate: string | undefined): string => {
+  if (!creationDate) return 'Unknown';
+
+  const startTime = new Date(creationDate).getTime();
+  const nowTime = new Date().getTime();
+  const differenceInMs = nowTime - startTime;
+
+  const minutes = Math.floor(differenceInMs / 60000);
+
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes} min ago`;
+
+  const hours = Math.floor(minutes / 60);
+  return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+};
 
 export function Dashboard() {
   const navigate = useNavigate();
 
-  // Navigation & Data State
   const [activeView, setActiveView] = useState<DashboardView>('triage');
   const [selectedPatient, setSelectedPatient] = useState<PatientRecord | null>(
     null,
@@ -22,46 +38,51 @@ export function Dashboard() {
   const [activeCases, setActiveCases] = useState<PatientRecord[]>([]);
   const [isLoadingCases, setIsLoadingCases] = useState(true);
 
-  // User Profile Name State
   const [userName, setUserName] = useState('');
+  const [userSpecialty, setUserSpecialty] = useState('Psicología Clínica');
 
-  // Load authenticated user data showing the real name
   useEffect(() => {
-    const userString = localStorage.getItem('user');
-    if (userString) {
-      const user = JSON.parse(userString) as { nombre: string; email?: string };
-      // Mostramos el Nombre. Si no existe, caemos en el email.
-      setUserName(user.nombre || user.email || 'Doctor Profesional');
-    }
-  }, []);
-
-  // Fetch Real Triage Cases from Backend
-  useEffect(() => {
-    const fetchCases = async () => {
-      try {
-        const cases = await triageService.getActiveCases();
-        setActiveCases(cases);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoadingCases(false);
+    const loadUserData = () => {
+      const userString = localStorage.getItem('user');
+      if (userString) {
+        const user = JSON.parse(userString) as {
+          nombre: string;
+          email?: string;
+          specialty?: string;
+        };
+        setUserName(user.nombre || user.email || 'Doctor Profesional');
+        if (user.specialty) setUserSpecialty(user.specialty);
       }
     };
 
-    fetchCases(); // Initial fetch
+    loadUserData();
+    window.addEventListener('user-profile-updated', loadUserData);
+    return () =>
+      window.removeEventListener('user-profile-updated', loadUserData);
+  }, []);
 
-    // Polling: Check for new panic button alerts every 5 seconds
+  const fetchCases = async () => {
+    try {
+      const cases = await triageService.getActiveCases();
+      setActiveCases(cases);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoadingCases(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCases();
     const interval = setInterval(fetchCases, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // Secure sign out
   const handleLogout = () => {
     authService.logout();
     navigate('/login');
   };
 
-  // Internal component: Real-Time Triage Inbox
   const renderTriageInbox = () => (
     <div className="flex flex-col h-full bg-slate-50">
       <header className="h-16 bg-white shadow-sm flex items-center justify-between px-8 border-b shrink-0">
@@ -69,7 +90,6 @@ export function Dashboard() {
           <h2 className="text-lg font-semibold text-slate-700">
             Active Triage Queue
           </h2>
-          {/* Animated pulse dot if there are active cases */}
           {activeCases.length > 0 && (
             <span className="flex h-3 w-3 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -142,7 +162,7 @@ export function Dashboard() {
                     <p
                       className={`font-bold ${caso.prioridad === 'Alta' ? 'text-red-600' : 'text-yellow-600'}`}
                     >
-                      {caso.tiempoEspera}
+                      {calculateWaitTime(caso.fechaAtencion)}
                     </p>
                   </div>
                   <button
@@ -171,10 +191,15 @@ export function Dashboard() {
         prioridad: selectedPatient.prioridad,
         tiempoEspera: selectedPatient.tiempoEspera ?? 'N/A',
       };
+
       return (
         <ExpedienteClinico
           paciente={pacienteProp}
-          onVolver={() => setSelectedPatient(null)}
+          // 🔥 FIX: Callback triggers immediate fetch to remove resolved case from UI
+          onVolver={async () => {
+            setSelectedPatient(null);
+            await fetchCases();
+          }}
         />
       );
     }
@@ -188,13 +213,15 @@ export function Dashboard() {
         return <RecordsHistory />;
       case 'chat':
         return <CrisisChat />;
+      case 'settings':
+        return <DoctorSettings />;
       default:
         return renderTriageInbox();
     }
   };
 
   return (
-    <div className="flex h-screen bg-slate-100 font-sans w-full overflow-hidden">
+    <div className="flex h-screen bg-slate-100 font-sans w-full overflow-hidden print:block print:h-auto print:bg-white print:overflow-visible">
       <Sidebar
         activeView={activeView}
         onViewChange={(view) => {
@@ -203,8 +230,9 @@ export function Dashboard() {
         }}
         onLogout={handleLogout}
         userName={userName}
+        specialtyLabel={userSpecialty}
       />
-      <main className="flex-1 flex flex-col overflow-hidden relative">
+      <main className="flex-1 flex flex-col overflow-hidden relative print:block print:overflow-visible">
         {renderMainContent()}
       </main>
     </div>

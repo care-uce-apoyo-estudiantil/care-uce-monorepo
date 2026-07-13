@@ -23,5 +23,10 @@ export interface Appointment {
   status: 'Scheduled' | 'Completed' | 'Cancelled';
 }
 
-// Defines the available views in the clinical dashboard
-export type DashboardView = 'triage' | 'records' | 'chat' | 'appointments';
+// Defines the available views in the clinical dashboard (Added 'settings')
+export type DashboardView =
+  | 'triage'
+  | 'records'
+  | 'chat'
+  | 'appointments'
+  | 'settings';
