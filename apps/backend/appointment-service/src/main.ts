@@ -11,8 +11,8 @@ async function bootstrap() {
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
 
-  // Leer el puerto de las variables de entorno, o usar 3002 por defecto
-  const port = process.env.PORT || 3002;
+  // Leer el puerto de las variables de entorno, o usar 3000 por defecto
+  const port = process.env.PORT || 3000;
   await app.listen(port);
   Logger.log(
     `🚀 Appointment Service is running on: http://localhost:${port}/${globalPrefix}`,

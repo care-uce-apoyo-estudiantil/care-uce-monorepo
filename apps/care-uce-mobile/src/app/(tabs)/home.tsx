@@ -22,7 +22,7 @@ import { EmergencyButton } from '../../components/atoms/EmergencyButton';
 import { ActionCard } from '../../components/molecules/ActionCard';
 
 declare const process: { env?: { EXPO_PUBLIC_API_URL?: string } } | undefined;
-const TRIAGE_API_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}:3001/api`;
+const TRIAGE_API_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}:3000/api`;
 
 export default function HomeScreen() {
   const router = useRouter();
