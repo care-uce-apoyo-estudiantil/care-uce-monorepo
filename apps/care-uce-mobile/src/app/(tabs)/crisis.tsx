@@ -18,7 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 declare const process: { env?: { EXPO_PUBLIC_API_URL?: string } } | undefined;
-const TRIAGE_API_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}:3001/api`;
+const TRIAGE_API_URL = `${process?.env?.EXPO_PUBLIC_API_URL ?? 'http://localhost'}:3000/api`;
 
 export default function CrisisChatScreen() {
   const router = useRouter();

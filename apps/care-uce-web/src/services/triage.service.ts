@@ -16,7 +16,7 @@ export interface WebTriageEntity {
 
 // Fallback to localhost if ENV is not strictly defined in Vite
 const TRIAGE_API_URL =
-  import.meta.env.VITE_TRIAGE_API_URL || 'http://localhost:3001/api';
+  import.meta.env.VITE_TRIAGE_API_URL || 'http://localhost:3000/api';
 
 class WebTriageService {
   /**
