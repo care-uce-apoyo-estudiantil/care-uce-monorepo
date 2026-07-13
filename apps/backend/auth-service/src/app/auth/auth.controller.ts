@@ -9,10 +9,12 @@ import {
   Get,
   Patch,
   Param,
+  Query,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { User } from '../users/user.entity';
 
 @Controller('auth')
 export class AuthController {
@@ -23,21 +25,17 @@ export class AuthController {
     @Body() registerDto: RegisterDto,
     @Headers('x-client-origin') origin: string,
   ): Promise<unknown> {
-    // Si no viene el header, le ponemos 'unknown' por defecto
     return this.authService.register(registerDto, origin || 'unknown');
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Body() loginDto: LoginDto): Promise<unknown> {
-    // Le pasamos el DTO completo al servicio
     return this.authService.login(loginDto);
   }
 
-  // 👇 NUEVOS ENDPOINTS PARA EL PANEL ADMINISTRATIVO WEB 👇
-
   @Get('users')
-  async getAllUsers(): Promise<unknown> {
+  async getAllUsers(): Promise<User[]> {
     return this.authService.getAllUsers();
   }
 
@@ -45,14 +43,49 @@ export class AuthController {
   async updateRole(
     @Param('id') id: string,
     @Body('role') role: string,
-  ): Promise<unknown> {
+  ): Promise<User> {
     return this.authService.updateRole(id, role);
   }
 
   @Get('doctors')
-  async getDoctors(): Promise<unknown> {
+  async getDoctors(@Query('specialty') specialty?: string): Promise<User[]> {
     const allUsers = await this.authService.getAllUsers();
-    // Filtramos para devolver solo a los que tienen rol de doctor
-    return allUsers.filter((user) => user.role === 'doctor');
+    let doctors = allUsers.filter((user) => user.role === 'doctor');
+
+    if (specialty) {
+      const decodedSpecialty = decodeURIComponent(specialty);
+      doctors = doctors.filter((doc) => doc.specialty === decodedSpecialty);
+    }
+    return doctors;
+  }
+
+  @Patch('profile/specialty')
+  @HttpCode(HttpStatus.OK)
+  async updateSpecialty(
+    @Body() body: { email: string; specialty: string },
+  ): Promise<User> {
+    return this.authService.updateUserSpecialty(body.email, body.specialty);
+  }
+
+  // 🔥 NEW: Endpoint for updating student profile data
+  @Patch('profile/student')
+  @HttpCode(HttpStatus.OK)
+  async updateStudentProfile(
+    @Body() body: { email: string; birthDate: string; major: string },
+  ): Promise<User> {
+    return this.authService.updateStudentProfile(
+      body.email,
+      body.birthDate,
+      body.major,
+    );
+  }
+
+  // 🔥 NEW: Endpoint for updating user password
+  @Patch('users/password')
+  @HttpCode(HttpStatus.OK)
+  async updatePassword(
+    @Body() body: { email: string; password: string },
+  ): Promise<{ message: string }> {
+    return this.authService.updatePassword(body.email, body.password);
   }
 }
