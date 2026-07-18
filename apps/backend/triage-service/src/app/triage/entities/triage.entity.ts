@@ -30,6 +30,10 @@ export class TriageEntity {
   @Column({ type: 'varchar', length: 20, default: 'Pendiente' })
   caseStatus!: 'Pendiente' | 'En Proceso' | 'Resuelto';
 
+  // 🔥 NEW: Save the doctor's clinical notes permanently
+  @Column({ type: 'text', nullable: true })
+  resolutionNotes!: string;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt!: Date;
 

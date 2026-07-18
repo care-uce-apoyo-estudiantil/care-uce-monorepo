@@ -3,9 +3,10 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, FindOptionsSelect } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../users/user.entity';
@@ -20,6 +21,9 @@ interface LoginResponse {
     role: string;
     nombre: string;
     cedula: string;
+    specialty?: string;
+    birthDate?: string;
+    major?: string;
   };
 }
 
@@ -40,7 +44,6 @@ export class AuthService {
   ): Promise<LoginResponse> {
     const { email, password, fullName, idCard } = registerDto;
 
-    // 1. Check if the email address is already taken
     const existingUser = await this.userRepository.findOne({
       where: { email },
     });
@@ -50,7 +53,6 @@ export class AuthService {
       );
     }
 
-    // 2. Check if the identification card (cedula) already exists
     if (idCard) {
       const existingCedula = await this.userRepository.findOne({
         where: { cedula: idCard },
@@ -79,7 +81,6 @@ export class AuthService {
 
     const savedUser = await this.userRepository.save(newUser);
 
-    // AUTO-LOGIN: Devolvemos el JWT de inmediato
     const payload = {
       sub: savedUser.id,
       email: savedUser.email,
@@ -124,6 +125,9 @@ export class AuthService {
         role: user.role,
         nombre: user.nombre || 'Usuario',
         cedula: user.cedula || '0000000000',
+        specialty: user.specialty,
+        birthDate: user.birthDate,
+        major: user.major,
       },
     };
   }
@@ -132,24 +136,29 @@ export class AuthService {
    * Retrieves all registered users for the Admin Web Dashboard.
    * Excludes sensitive data like password hashes.
    */
-  async getAllUsers(): Promise<Partial<User>[]> {
+  async getAllUsers(): Promise<User[]> {
+    const selectOptions: FindOptionsSelect<User> = {
+      id: true,
+      nombre: true,
+      email: true,
+      cedula: true,
+      role: true,
+      specialty: true,
+      birthDate: true,
+      major: true,
+      createdAt: true,
+    };
+
     return await this.userRepository.find({
-      select: {
-        id: true,
-        nombre: true,
-        email: true,
-        cedula: true,
-        role: true,
-        createdAt: true,
-      },
-      order: { createdAt: 'DESC' }, // Newest first
+      select: selectOptions,
+      order: { createdAt: 'DESC' },
     });
   }
 
   /**
    * Updates a user's role (Used by Administrators).
    */
-  async updateRole(id: string, newRole: string): Promise<Partial<User>> {
+  async updateRole(id: string, newRole: string): Promise<User> {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
       throw new UnauthorizedException('User not found in the system');
@@ -160,6 +169,67 @@ export class AuthService {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password_hash, ...result } = savedUser;
-    return result;
+    return result as User;
+  }
+
+  /**
+   * Updates a doctor's clinical specialty.
+   */
+  async updateUserSpecialty(email: string, specialty: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException('Doctor profile not found in the database');
+    }
+
+    user.specialty = specialty;
+    const savedUser = await this.userRepository.save(user);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password_hash, ...result } = savedUser;
+    return result as User;
+  }
+
+  /**
+   * 🔥 NEW: Updates student's profile data (birth date and major).
+   */
+  async updateStudentProfile(
+    email: string,
+    birthDate: string,
+    major: string,
+  ): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException('User profile not found in the database');
+    }
+
+    user.birthDate = birthDate;
+    user.major = major;
+    const savedUser = await this.userRepository.save(user);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password_hash, ...result } = savedUser;
+    return result as User;
+  }
+
+  /**
+   * 🔥 NEW: Updates the user's password securely from the profile settings.
+   */
+  async updatePassword(
+    email: string,
+    newPasswordRaw: string,
+  ): Promise<{ message: string }> {
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException('User profile not found in the database');
+    }
+
+    // Hash the new password before storing it
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPasswordRaw, saltRounds);
+
+    user.password_hash = hashedPassword;
+    await this.userRepository.save(user);
+
+    return { message: 'Password updated successfully' };
   }
 }

@@ -1,91 +1,104 @@
-import { Bell, ShieldAlert, CheckCircle, Clock, Activity } from 'lucide-react';
+// Location: apps/care-uce-web/src/pages/AlertsPage.tsx
+import React, { useState, useEffect } from 'react';
+import { Activity, Clock, AlertCircle, AlertTriangle } from 'lucide-react';
+// 🔥 FIX: Correctly imported from triage.service instead of admin.service
+import webTriageService, { WebTriageEntity } from '../services/triage.service';
 
-const MOCK_ALERTS = [
-  {
-    id: 'EVT-7701',
-    type: 'Crisis Psicológica',
-    severity: 'High',
-    status: 'Atendido',
-    time: '10:45 AM',
-  },
-  {
-    id: 'EVT-7702',
-    type: 'Intento de Deserción',
-    severity: 'Medium',
-    status: 'Pendiente',
-    time: '11:15 AM',
-  },
-  {
-    id: 'EVT-7703',
-    type: 'Emergencia Médica',
-    severity: 'Critical',
-    status: 'En Proceso',
-    time: '12:02 PM',
-  },
-];
+export const AlertsPage: React.FC = () => {
+  const [alerts, setAlerts] = useState<WebTriageEntity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-export const AlertsPage = () => {
+  // Fetch real clinical data on component mount
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      setIsLoading(true);
+      try {
+        // We only want the active/unresolved alerts for the live monitor
+        const data = await webTriageService.getAllTriageEvents();
+        const activeAlerts = data.filter(
+          (item) => item.caseStatus === 'Pendiente',
+        );
+        setAlerts(activeAlerts);
+      } catch (error) {
+        console.error('Failed to load active alerts', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAlerts();
+  }, []);
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* HEADER */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Monitoreo de Alertas (Event Bus)
+    <div className="flex-1 bg-slate-50 flex flex-col h-full overflow-hidden font-sans">
+      <div className="px-8 py-6 bg-white border-b border-slate-200 shrink-0">
+        <h1 className="text-2xl font-bold text-slate-800">
+          Monitor de Alertas Activas
         </h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Visualización en tiempo real de eventos críticos del sistema
-          distribuido.
+        <p className="text-sm text-slate-500 mt-1">
+          Visualización en tiempo real de las emergencias clínicas sin resolver.
         </p>
       </div>
 
-      {/* MÉTRICAS DE ALERTAS */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg border border-red-200 shadow-sm flex items-center justify-between">
-          <span className="text-red-600 font-bold">Críticas: 12</span>
-          <ShieldAlert size={20} className="text-red-500" />
-        </div>
-        <div className="bg-white p-4 rounded-lg border border-yellow-200 shadow-sm flex items-center justify-between">
-          <span className="text-yellow-600 font-bold">Pendientes: 5</span>
-          <Clock size={20} className="text-yellow-500" />
-        </div>
-        <div className="bg-white p-4 rounded-lg border border-green-200 shadow-sm flex items-center justify-between">
-          <span className="text-green-600 font-bold">Resueltas: 140</span>
-          <CheckCircle size={20} className="text-green-500" />
-        </div>
-        <div className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm flex items-center justify-between">
-          <span className="text-blue-600 font-bold">Actividad: Normal</span>
-          <Activity size={20} className="text-blue-500" />
-        </div>
-      </div>
-
-      {/* LISTA DE EVENTOS */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-        <h2 className="text-lg font-semibold mb-4">Log de Eventos Recientes</h2>
-        <div className="space-y-4">
-          {MOCK_ALERTS.map((alert) => (
-            <div
-              key={alert.id}
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border-l-4 border-l-red-500"
-            >
-              <div className="flex items-center gap-4">
-                <Bell className="text-red-500" size={20} />
-                <div>
-                  <p className="font-semibold text-sm">{alert.type}</p>
-                  <p className="text-xs text-gray-500">ID Evento: {alert.id}</p>
+      <div className="flex-1 overflow-y-auto p-8">
+        <div className="max-w-5xl mx-auto space-y-4">
+          {isLoading ? (
+            <div className="p-16 flex flex-col items-center justify-center text-slate-400">
+              <Activity className="animate-spin text-red-500 mb-4" size={32} />
+              <p>Sincronizando red de telemetría...</p>
+            </div>
+          ) : alerts.length === 0 ? (
+            <div className="bg-white p-12 rounded-xl border border-slate-200 text-center shadow-sm">
+              <AlertCircle className="text-slate-300 mx-auto mb-4" size={48} />
+              <h3 className="text-lg font-bold text-slate-700">
+                Sistema Seguro
+              </h3>
+              <p className="text-slate-500">
+                No hay alertas de riesgo crítico activas en la universidad.
+              </p>
+            </div>
+          ) : (
+            alerts.map((alert) => (
+              <div
+                key={alert.id}
+                className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between"
+              >
+                <div className="flex gap-4">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-red-600 shrink-0">
+                    <AlertTriangle size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">
+                      {alert.patientName}
+                    </h3>
+                    <p className="text-sm font-medium text-slate-500 mb-2">
+                      {alert.academicMajor}
+                    </p>
+                    <div className="bg-amber-50 px-4 py-3 rounded-lg border border-amber-100">
+                      <p className="text-sm text-slate-700 italic">
+                        "{alert.crisisReason}"
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-xs font-bold text-slate-400 uppercase flex items-center justify-end gap-1 mb-1">
+                    <Clock size={14} /> Tiempo de emisión
+                  </p>
+                  <p className="text-sm font-bold text-red-600">
+                    {new Date(alert.createdAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center gap-6">
-                <span
-                  className={`text-xs font-bold px-2 py-1 rounded ${alert.status === 'Atendido' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}
-                >
-                  {alert.status}
-                </span>
-                <span className="text-xs text-gray-400">{alert.time}</span>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>
   );
 };
+
+export default AlertsPage;
