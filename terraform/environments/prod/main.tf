@@ -1,11 +1,3 @@
-terraform {
-  cloud {
-    organization = "CareUCE"
-    workspaces {
-      name = "careuce-prod-jimmy"
-    }
-  }
-}
 
 # 1. Red Multi-AZ
 module "vpc" {
@@ -228,6 +220,15 @@ resource "aws_launch_template" "app" {
   instance_type = var.instance_type
   vpc_security_group_ids = [aws_security_group.app_sg.id]
   iam_instance_profile { name = "LabInstanceProfile" }
+
+  block_device_mappings {
+    device_name = "/dev/sda1"
+    ebs {
+      volume_size           = 20
+      volume_type            = "gp3"
+      delete_on_termination  = true
+    }
+  }
 
   user_data = base64encode(<<-EOF
               #!/bin/bash

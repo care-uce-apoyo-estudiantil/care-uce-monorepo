@@ -3,7 +3,7 @@ name: PROD Deployment Pipeline
 on:
   push:
     branches:
-      - main
+      - QA-cr
 
 jobs:
   ci-and-build:
